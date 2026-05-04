@@ -23,6 +23,7 @@ export default function NuovoBRPage() {
   const [nome, setNome] = useState("");
   const [docs, setDocs] = useState<File[]>([]);
   const [mockups, setMockups] = useState<File[]>([]);
+  const [mockupMode, setMockupMode] = useState<"upload" | "claude">("upload");
 
   useEffect(() => {
     fetch("/api/projects")
@@ -152,42 +153,120 @@ export default function NuovoBRPage() {
             <h2 className="mb-4 text-lg font-medium">3. Documenti</h2>
 
             <div className="mb-4">
-              <label className="mb-1 block text-sm font-medium">
+              <label className="mb-2 block text-sm font-medium">
                 Documenti BR (DOCX, PDF, XLSX, PPTX)
               </label>
               <input
+                id="doc-upload"
                 type="file"
                 multiple
                 accept=".docx,.pdf,.xlsx,.pptx"
                 onChange={(e) =>
                   setDocs(e.target.files ? Array.from(e.target.files) : [])
                 }
-                className="w-full text-sm"
+                className="hidden"
               />
+              <button
+                type="button"
+                onClick={() => document.getElementById("doc-upload")?.click()}
+                className="rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted transition-colors hover:border-primary hover:text-primary"
+              >
+                Scegli file...
+              </button>
               {docs.length > 0 && (
-                <p className="mt-1 text-xs text-muted">
-                  {docs.length} file selezionati
-                </p>
+                <div className="mt-2 space-y-1">
+                  {docs.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm">
+                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                        {f.name.split(".").pop()?.toUpperCase()}
+                      </span>
+                      <span className="flex-1 truncate">{f.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setDocs(docs.filter((_, idx) => idx !== i))}
+                        className="text-xs text-danger hover:underline"
+                      >
+                        Rimuovi
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
             <div className="mb-4">
-              <label className="mb-1 block text-sm font-medium">
-                Mockup (PNG, JPG)
-              </label>
-              <input
-                type="file"
-                multiple
-                accept=".png,.jpg,.jpeg"
-                onChange={(e) =>
-                  setMockups(e.target.files ? Array.from(e.target.files) : [])
-                }
-                className="w-full text-sm"
-              />
-              {mockups.length > 0 && (
-                <p className="mt-1 text-xs text-muted">
-                  {mockups.length} file selezionati
-                </p>
+              <label className="mb-2 block text-sm font-medium">Mockup</label>
+              <div className="mb-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMockupMode("upload")}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    mockupMode === "upload"
+                      ? "bg-primary text-white"
+                      : "border border-border text-muted hover:text-foreground"
+                  }`}
+                >
+                  Carica file
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMockupMode("claude")}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    mockupMode === "claude"
+                      ? "bg-primary text-white"
+                      : "border border-border text-muted hover:text-foreground"
+                  }`}
+                >
+                  Crea con Claude Design
+                </button>
+              </div>
+
+              {mockupMode === "upload" ? (
+                <>
+                  <input
+                    id="mockup-upload"
+                    type="file"
+                    multiple
+                    accept=".png,.jpg,.jpeg"
+                    onChange={(e) =>
+                      setMockups(e.target.files ? Array.from(e.target.files) : [])
+                    }
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("mockup-upload")?.click()}
+                    className="rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted transition-colors hover:border-primary hover:text-primary"
+                  >
+                    Scegli immagini (PNG, JPG)...
+                  </button>
+                  {mockups.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {mockups.map((f, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                            {f.name.split(".").pop()?.toUpperCase()}
+                          </span>
+                          <span className="flex-1 truncate">{f.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setMockups(mockups.filter((_, idx) => idx !== i))}
+                            className="text-xs text-danger hover:underline"
+                          >
+                            Rimuovi
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border bg-surface/50 px-4 py-6 text-center">
+                  <p className="text-sm font-medium text-muted">Prossimamente</p>
+                  <p className="mt-1 text-xs text-muted">
+                    Genera mockup descrivendo le schermate a Claude.
+                  </p>
+                </div>
               )}
             </div>
 
