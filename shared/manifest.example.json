@@ -1,0 +1,150 @@
+{
+  "version": "1.0",
+  "nome": "booking-v2",
+  "data_creazione": "2026-05-04",
+  "creato_da": "mario.rossi@azienda.it",
+  "stato_pipeline": "review",
+
+  "codebase": [
+    { "nome": "back-end", "sigla": "BE" },
+    { "nome": "front-end", "sigla": "FE" }
+  ],
+
+  "documenti": [
+    { "originale": "docs/BR_v24.docx", "convertito": "docs/BR_v24.md", "tipo": "br" },
+    { "originale": "docs/Specifiche.pdf", "convertito": "docs/Specifiche.md", "tipo": "spec" },
+    { "originale": "mockups/dashboard.png", "convertito": null, "tipo": "mockup" }
+  ],
+
+  "team": [
+    { "nome": "Marco", "email": "marco@azienda.it", "ruolo": "BE", "seniority": "Senior", "reviewer": null },
+    { "nome": "Luca", "email": "luca@azienda.it", "ruolo": "FE", "seniority": "Mid", "reviewer": null },
+    { "nome": "Anna", "email": "anna@azienda.it", "ruolo": "BE", "seniority": "Junior", "reviewer": "Marco" }
+  ],
+
+  "review": {
+    "data": "2026-05-04",
+    "esito": "Con bloccanti",
+    "problemi": [
+      {
+        "id": "B-001",
+        "titolo": "Flusso annullamento non definito",
+        "categoria": "Gap funzionale",
+        "bloccante": true,
+        "dove": "BR_v24.md, sezione 3.2",
+        "problema": "Il BR descrive la creazione ma non l'annullamento di un booking",
+        "impatto": "Impossibile pianificare il flusso completo senza sapere cosa succede in caso di cancellazione",
+        "domanda": "Cosa succede quando un booking confermato viene annullato? Quali stati intermedi sono previsti?",
+        "assunzione_proposta": null,
+        "risposta": null,
+        "data_risposta": null,
+        "stato": "aperto"
+      },
+      {
+        "id": "NB-001",
+        "titolo": "Formato date non specificato",
+        "categoria": "Ambiguita",
+        "bloccante": false,
+        "dove": "BR_v24.md, sezione 2.1",
+        "problema": "Non e' specificato il formato delle date visualizzate",
+        "impatto": "Possibile inconsistenza tra BE e FE nel formato date",
+        "domanda": "Quale formato date preferite? (es. DD/MM/YYYY, YYYY-MM-DD)",
+        "assunzione_proposta": "Si usa DD/MM/YYYY per il display e ISO 8601 per lo storage",
+        "risposta": null,
+        "data_risposta": null,
+        "stato": "aperto"
+      }
+    ],
+    "assunzioni": [
+      {
+        "id": "A-001",
+        "problema_rif": "NB-001",
+        "assunzione": "Si usa DD/MM/YYYY per il display e ISO 8601 per lo storage",
+        "rischio": "Medio",
+        "costo_correzione": "Basso",
+        "stato": "in_attesa",
+        "risposta_funzionale": null
+      }
+    ],
+    "disallineamenti_codice": [
+      {
+        "id": "D-001",
+        "tipo": "naming",
+        "dove_doc": "BR_v24.md - campo 'prenotazione'",
+        "dove_codice": "src/models/Booking.java - campo 'reservation'",
+        "descrizione": "Il documento usa 'prenotazione' ma il codice usa 'reservation'",
+        "impatto": "Confusione nella mappatura requisiti-codice"
+      }
+    ]
+  },
+
+  "qa": {
+    "criteri_accettazione": [
+      {
+        "id": "QA-001",
+        "funzionalita": "Booking - creazione",
+        "criterio": "L'utente puo' creare un booking con tutti i campi obbligatori compilati",
+        "fonte": "review",
+        "validato_qa": false,
+        "risultato_test": null
+      },
+      {
+        "id": "QA-002",
+        "funzionalita": "Booking - validazione",
+        "criterio": "Il sistema mostra errori di validazione per campi obbligatori mancanti",
+        "fonte": "review",
+        "validato_qa": false,
+        "risultato_test": null
+      }
+    ]
+  },
+
+  "gap_analysis": {
+    "data": null,
+    "matrice": [],
+    "gap_aperti": []
+  },
+
+  "piano": {
+    "approvato": false,
+    "data_approvazione": null,
+    "approvato_da": null,
+    "stream": [],
+    "task": [
+      {
+        "id": "T-001",
+        "stream": "stream-fondazioni",
+        "owner": "Marco",
+        "area": "BE",
+        "priorita": "P0",
+        "wave": 0,
+        "attivita": "Creare entita Booking",
+        "descrizione": "Definire l'entita JPA Booking con tutti i campi dal BR, incluse le relazioni con le entita esistenti",
+        "dipendenze": [],
+        "effort_gg": 3,
+        "branch": null,
+        "progresso": 0,
+        "stato": "da_iniziare",
+        "qa_criteri": ["QA-001"],
+        "note": ""
+      }
+    ]
+  },
+
+  "timeline": [
+    {
+      "data": "2026-05-04T10:30:00",
+      "attore": "mario.rossi@azienda.it",
+      "ruolo": "funzionale",
+      "azione": "BR creato",
+      "stage": "onboard"
+    },
+    {
+      "data": "2026-05-04T14:00:00",
+      "attore": "tech.lead@azienda.it",
+      "ruolo": "tech_lead",
+      "azione": "Review completato: 1 bloccante, 1 non bloccante",
+      "stage": "review"
+    }
+  ]
+}

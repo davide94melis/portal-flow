@@ -1,0 +1,526 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://portal-flow/manifest.schema.json",
+  "title": "BR Manifest",
+  "description": "Single source of truth per ogni Business Requirement nel pipeline POM",
+  "type": "object",
+  "required": ["version", "nome", "data_creazione", "creato_da", "stato_pipeline", "codebase", "documenti", "team", "review", "qa", "gap_analysis", "piano", "timeline"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "nome": {
+      "type": "string",
+      "description": "Nome identificativo del BR (slug, senza spazi)",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "data_creazione": {
+      "type": "string",
+      "format": "date",
+      "description": "Data di creazione del BR (YYYY-MM-DD)"
+    },
+    "creato_da": {
+      "type": "string",
+      "format": "email",
+      "description": "Email del funzionale che ha creato il BR"
+    },
+    "stato_pipeline": {
+      "type": "string",
+      "enum": ["onboard", "review", "clarify", "analyze", "approve", "execute", "verify", "update", "report"],
+      "description": "Stage corrente del pipeline"
+    },
+    "codebase": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/codebase_entry"
+      },
+      "minItems": 1
+    },
+    "documenti": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/documento"
+      }
+    },
+    "team": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/team_member"
+      }
+    },
+    "review": {
+      "$ref": "#/$defs/review"
+    },
+    "qa": {
+      "$ref": "#/$defs/qa"
+    },
+    "gap_analysis": {
+      "$ref": "#/$defs/gap_analysis"
+    },
+    "piano": {
+      "$ref": "#/$defs/piano"
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/timeline_entry"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "codebase_entry": {
+      "type": "object",
+      "required": ["nome", "sigla"],
+      "properties": {
+        "nome": {
+          "type": "string",
+          "description": "Nome completo del codebase"
+        },
+        "sigla": {
+          "type": "string",
+          "description": "Sigla breve (es. BE, FE)",
+          "pattern": "^[A-Z]{2,5}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "documento": {
+      "type": "object",
+      "required": ["originale", "tipo"],
+      "properties": {
+        "originale": {
+          "type": "string",
+          "description": "Path relativo al file originale"
+        },
+        "convertito": {
+          "type": ["string", "null"],
+          "description": "Path relativo al file convertito in MD"
+        },
+        "tipo": {
+          "type": "string",
+          "enum": ["br", "spec", "mapping", "mockup", "altro"],
+          "description": "Tipo di documento"
+        }
+      },
+      "additionalProperties": false
+    },
+    "team_member": {
+      "type": "object",
+      "required": ["nome", "email", "ruolo", "seniority"],
+      "properties": {
+        "nome": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "ruolo": {
+          "type": "string",
+          "description": "Area di competenza (es. BE, FE, FULL)"
+        },
+        "seniority": {
+          "type": "string",
+          "enum": ["Junior", "Mid", "Senior", "Lead"]
+        },
+        "reviewer": {
+          "type": ["string", "null"],
+          "description": "Nome del reviewer assegnato (per junior/mid)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": ["data", "esito", "problemi", "assunzioni", "disallineamenti_codice"],
+      "properties": {
+        "data": {
+          "type": ["string", "null"],
+          "format": "date"
+        },
+        "esito": {
+          "type": ["string", "null"],
+          "enum": ["Senza bloccanti", "Con bloccanti", null]
+        },
+        "problemi": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/problema"
+          }
+        },
+        "assunzioni": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assunzione"
+          }
+        },
+        "disallineamenti_codice": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/disallineamento"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "problema": {
+      "type": "object",
+      "required": ["id", "titolo", "categoria", "bloccante", "dove", "problema", "impatto", "domanda"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(B|NB)-\\d{3}$",
+          "description": "ID problema: B-xxx per bloccanti, NB-xxx per non bloccanti"
+        },
+        "titolo": {
+          "type": "string"
+        },
+        "categoria": {
+          "type": "string",
+          "enum": ["Gap funzionale", "Ambiguita", "Contraddizione", "Dipendenza non specificata", "Vincolo tecnico", "Sicurezza", "Performance", "UX"]
+        },
+        "bloccante": {
+          "type": "boolean"
+        },
+        "dove": {
+          "type": "string",
+          "description": "Riferimento al punto del documento"
+        },
+        "problema": {
+          "type": "string"
+        },
+        "impatto": {
+          "type": "string"
+        },
+        "domanda": {
+          "type": "string"
+        },
+        "assunzione_proposta": {
+          "type": ["string", "null"]
+        },
+        "risposta": {
+          "type": ["string", "null"]
+        },
+        "data_risposta": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "stato": {
+          "type": "string",
+          "enum": ["aperto", "risposto", "accettato", "rifiutato"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "assunzione": {
+      "type": "object",
+      "required": ["id", "problema_rif", "assunzione", "rischio", "costo_correzione", "stato"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^A-\\d{3}$"
+        },
+        "problema_rif": {
+          "type": "string",
+          "description": "ID del problema che ha generato questa assunzione"
+        },
+        "assunzione": {
+          "type": "string"
+        },
+        "rischio": {
+          "type": "string",
+          "enum": ["Basso", "Medio", "Alto"]
+        },
+        "costo_correzione": {
+          "type": "string",
+          "enum": ["Basso", "Medio", "Alto"]
+        },
+        "stato": {
+          "type": "string",
+          "enum": ["in_attesa", "confermata", "rifiutata"]
+        },
+        "risposta_funzionale": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "disallineamento": {
+      "type": "object",
+      "required": ["id", "tipo", "dove_doc", "dove_codice", "descrizione", "impatto"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^D-\\d{3}$"
+        },
+        "tipo": {
+          "type": "string",
+          "enum": ["naming", "struttura", "logica", "modello_dati", "api"]
+        },
+        "dove_doc": {
+          "type": "string"
+        },
+        "dove_codice": {
+          "type": "string"
+        },
+        "descrizione": {
+          "type": "string"
+        },
+        "impatto": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "qa": {
+      "type": "object",
+      "required": ["criteri_accettazione"],
+      "properties": {
+        "criteri_accettazione": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/criterio_qa"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "criterio_qa": {
+      "type": "object",
+      "required": ["id", "funzionalita", "criterio", "fonte", "validato_qa"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^QA-\\d{3}$"
+        },
+        "funzionalita": {
+          "type": "string"
+        },
+        "criterio": {
+          "type": "string"
+        },
+        "fonte": {
+          "type": "string",
+          "enum": ["review", "analisi", "qa_team"],
+          "description": "Chi ha generato il criterio"
+        },
+        "validato_qa": {
+          "type": "boolean"
+        },
+        "risultato_test": {
+          "type": ["string", "null"],
+          "enum": ["pass", "fail", null]
+        }
+      },
+      "additionalProperties": false
+    },
+    "gap_analysis": {
+      "type": "object",
+      "required": ["data", "matrice", "gap_aperti"],
+      "properties": {
+        "data": {
+          "type": ["string", "null"],
+          "format": "date"
+        },
+        "matrice": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/matrice_entry"
+          }
+        },
+        "gap_aperti": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Lista ID dei gap non ancora risolti"
+        }
+      },
+      "additionalProperties": false
+    },
+    "matrice_entry": {
+      "type": "object",
+      "required": ["id", "funzionalita", "stato_attuale", "stato_richiesto", "gap", "codebase"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^G-\\d{3}$"
+        },
+        "funzionalita": {
+          "type": "string"
+        },
+        "stato_attuale": {
+          "type": "string",
+          "enum": ["assente", "parziale", "presente", "diverso"]
+        },
+        "stato_richiesto": {
+          "type": "string"
+        },
+        "gap": {
+          "type": "string"
+        },
+        "codebase": {
+          "type": "string",
+          "description": "Sigla del codebase interessato"
+        },
+        "file_coinvolti": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "piano": {
+      "type": "object",
+      "required": ["approvato", "stream", "task"],
+      "properties": {
+        "approvato": {
+          "type": "boolean"
+        },
+        "data_approvazione": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "approvato_da": {
+          "type": ["string", "null"],
+          "format": "email"
+        },
+        "stream": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stream"
+          }
+        },
+        "task": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/task"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "stream": {
+      "type": "object",
+      "required": ["id", "nome", "descrizione"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^stream-"
+        },
+        "nome": {
+          "type": "string"
+        },
+        "descrizione": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "task": {
+      "type": "object",
+      "required": ["id", "stream", "owner", "area", "priorita", "wave", "attivita", "descrizione", "dipendenze", "effort_gg", "stato", "qa_criteri"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^T-(\\d{3}|MERGE-\\d{3})$"
+        },
+        "stream": {
+          "type": "string",
+          "description": "ID dello stream di appartenenza"
+        },
+        "owner": {
+          "type": "string",
+          "description": "Nome dello sviluppatore assegnato"
+        },
+        "area": {
+          "type": "string",
+          "description": "Sigla del codebase (es. BE, FE)"
+        },
+        "priorita": {
+          "type": "string",
+          "enum": ["P0", "P1", "P2"]
+        },
+        "wave": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attivita": {
+          "type": "string",
+          "description": "Titolo breve della task"
+        },
+        "descrizione": {
+          "type": "string",
+          "description": "Descrizione dettagliata"
+        },
+        "dipendenze": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "ID delle task da cui dipende"
+        },
+        "effort_gg": {
+          "type": "number",
+          "minimum": 0.5,
+          "description": "Effort stimato in giorni"
+        },
+        "branch": {
+          "type": ["string", "null"],
+          "description": "Nome del branch git per questa task"
+        },
+        "progresso": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentuale di completamento"
+        },
+        "stato": {
+          "type": "string",
+          "enum": ["da_iniziare", "in_corso", "completata", "bloccata", "annullata", "sospesa"]
+        },
+        "qa_criteri": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "ID dei criteri QA linkati a questa task"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "timeline_entry": {
+      "type": "object",
+      "required": ["data", "attore", "ruolo", "azione", "stage"],
+      "properties": {
+        "data": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "attore": {
+          "type": "string",
+          "description": "Email o nome di chi ha eseguito l'azione"
+        },
+        "ruolo": {
+          "type": "string",
+          "enum": ["funzionale", "tech_lead", "dev", "qa", "admin", "sistema"]
+        },
+        "azione": {
+          "type": "string"
+        },
+        "stage": {
+          "type": "string",
+          "enum": ["onboard", "review", "clarify", "analyze", "approve", "execute", "verify", "update", "report"]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
