@@ -1,20 +1,17 @@
 import { Octokit } from "@octokit/rest";
+import type { RepoRef } from "@/types/manifest";
 
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
 
-const owner = process.env.GITHUB_REPO_OWNER!;
-const repo = process.env.GITHUB_REPO_NAME!;
-const branch = process.env.GITHUB_REPO_BRANCH || "main";
-
-export async function readFile(path: string): Promise<string | null> {
+export async function readFile(repo: RepoRef, path: string): Promise<string | null> {
   try {
     const { data } = await octokit.repos.getContent({
-      owner,
-      repo,
+      owner: repo.owner,
+      repo: repo.name,
       path,
-      ref: branch,
+      ref: repo.branch,
     });
 
     if ("content" in data && data.type === "file") {
@@ -29,13 +26,13 @@ export async function readFile(path: string): Promise<string | null> {
   }
 }
 
-async function getFileSha(path: string): Promise<string | null> {
+async function getFileSha(repo: RepoRef, path: string): Promise<string | null> {
   try {
     const { data } = await octokit.repos.getContent({
-      owner,
-      repo,
+      owner: repo.owner,
+      repo: repo.name,
       path,
-      ref: branch,
+      ref: repo.branch,
     });
 
     if ("sha" in data) {
@@ -48,31 +45,32 @@ async function getFileSha(path: string): Promise<string | null> {
 }
 
 export async function writeFile(
+  repo: RepoRef,
   path: string,
   content: string,
   message: string
 ): Promise<void> {
-  const sha = await getFileSha(path);
+  const sha = await getFileSha(repo, path);
   const encoded = Buffer.from(content).toString("base64");
 
   await octokit.repos.createOrUpdateFileContents({
-    owner,
-    repo,
+    owner: repo.owner,
+    repo: repo.name,
     path,
     message,
     content: encoded,
-    branch,
+    branch: repo.branch,
     ...(sha ? { sha } : {}),
   });
 }
 
-export async function listFiles(dir: string): Promise<string[]> {
+export async function listFiles(repo: RepoRef, dir: string): Promise<string[]> {
   try {
     const { data } = await octokit.repos.getContent({
-      owner,
-      repo,
+      owner: repo.owner,
+      repo: repo.name,
       path: dir,
-      ref: branch,
+      ref: repo.branch,
     });
 
     if (Array.isArray(data)) {
@@ -85,20 +83,21 @@ export async function listFiles(dir: string): Promise<string[]> {
 }
 
 export async function uploadFile(
+  repo: RepoRef,
   path: string,
   buffer: Buffer,
   message: string
 ): Promise<void> {
-  const sha = await getFileSha(path);
+  const sha = await getFileSha(repo, path);
   const encoded = buffer.toString("base64");
 
   await octokit.repos.createOrUpdateFileContents({
-    owner,
-    repo,
+    owner: repo.owner,
+    repo: repo.name,
     path,
     message,
     content: encoded,
-    branch,
+    branch: repo.branch,
     ...(sha ? { sha } : {}),
   });
 }

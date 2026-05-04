@@ -1,3 +1,18 @@
+export interface Project {
+  id: string;
+  nome: string;
+  slug: string;
+  repoOwner: string;
+  repoName: string;
+  branch: string;
+}
+
+export interface RepoRef {
+  owner: string;
+  name: string;
+  branch: string;
+}
+
 export type StatoPipeline =
   | "onboard"
   | "review"
