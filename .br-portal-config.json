@@ -1,9 +1,4 @@
 {
-  "repo": {
-    "owner": "davide94melis",
-    "name": "portal-flow",
-    "branch": "main"
-  },
   "ruoli": ["funzionale", "tech_lead", "dev", "qa", "admin"],
   "notifiche": {
     "in_app": true,

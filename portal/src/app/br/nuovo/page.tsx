@@ -1,7 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+
+interface Project {
+  id: string;
+  nome: string;
+  slug: string;
+  repoOwner: string;
+  repoName: string;
+  branch: string;
+}
 
 interface CodebaseItem {
   nome: string;
@@ -10,16 +19,25 @@ interface CodebaseItem {
 
 export default function NuovoBRPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectSlug, setProjectSlug] = useState("");
   const [nome, setNome] = useState("");
   const [codebase, setCodebase] = useState<CodebaseItem[]>([
     { nome: "", sigla: "" },
   ]);
   const [docs, setDocs] = useState<File[]>([]);
   const [mockups, setMockups] = useState<File[]>([]);
+
+  useEffect(() => {
+    fetch("/api/projects")
+      .then((res) => res.json())
+      .then((data: Project[]) => setProjects(data))
+      .catch(() => setProjects([]));
+  }, []);
 
   function addCodebase() {
     setCodebase([...codebase, { nome: "", sigla: "" }]);
@@ -48,6 +66,7 @@ export default function NuovoBRPage() {
     }
 
     const fd = new FormData();
+    fd.set("projectSlug", projectSlug);
     fd.set("nome", nome.toLowerCase().replace(/\s+/g, "-"));
     fd.set("codebase", JSON.stringify(validCodebase));
     fd.set("team", JSON.stringify([]));
@@ -76,9 +95,48 @@ export default function NuovoBRPage() {
       <h1 className="mb-6 text-2xl font-semibold">Nuovo Business Requirement</h1>
 
       <form onSubmit={handleSubmit}>
+        {step === 0 && (
+          <div className="rounded-lg border border-border bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-lg font-medium">1. Seleziona progetto</h2>
+
+            {projects.length === 0 ? (
+              <p className="text-sm text-muted">
+                Nessun progetto configurato. Chiedi a un admin di crearne uno.
+              </p>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <label className="mb-1 block text-sm font-medium">Progetto</label>
+                  <select
+                    value={projectSlug}
+                    onChange={(e) => setProjectSlug(e.target.value)}
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                  >
+                    <option value="">-- Seleziona un progetto --</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.slug}>
+                        {p.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!projectSlug}
+                  onClick={() => setStep(1)}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50"
+                >
+                  Avanti
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {step === 1 && (
           <div className="rounded-lg border border-border bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-medium">1. Informazioni base</h2>
+            <h2 className="mb-4 text-lg font-medium">2. Informazioni base</h2>
 
             <div className="mb-4">
               <label className="mb-1 block text-sm font-medium">Nome BR</label>
@@ -133,19 +191,28 @@ export default function NuovoBRPage() {
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setStep(2)}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover"
-            >
-              Avanti
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setStep(0)}
+                className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-surface"
+              >
+                Indietro
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover"
+              >
+                Avanti
+              </button>
+            </div>
           </div>
         )}
 
         {step === 2 && (
           <div className="rounded-lg border border-border bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-medium">2. Documenti</h2>
+            <h2 className="mb-4 text-lg font-medium">3. Documenti</h2>
 
             <div className="mb-4">
               <label className="mb-1 block text-sm font-medium">

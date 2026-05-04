@@ -36,9 +36,10 @@ export default function DashboardPage() {
         {brs.map((br) => {
           const progress = br.taskCount > 0 ? Math.round((br.taskCompleted / br.taskCount) * 100) : 0;
           return (
-            <Link key={br.nome} href={`/br/${br.nome}`} className="flex items-center justify-between rounded-lg border border-border bg-white p-4 shadow-sm hover:shadow-md">
+            <Link key={`${br.projectSlug}--${br.nome}`} href={`/br/${br.projectSlug}--${br.nome}`} className="flex items-center justify-between rounded-lg border border-border bg-white p-4 shadow-sm hover:shadow-md">
               <div>
                 <h2 className="font-medium">{br.nome}</h2>
+                <p className="text-xs text-muted">{br.projectNome}</p>
                 <p className="text-xs text-muted">{br.data_creazione} — {br.creato_da}</p>
               </div>
               <div className="flex items-center gap-4">
