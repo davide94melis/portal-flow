@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ClaudeDesignStudio } from "@/components/claude-design/ClaudeDesignStudio";
 
 interface Project {
   id: string;
@@ -24,6 +25,8 @@ export default function NuovoBRPage() {
   const [docs, setDocs] = useState<File[]>([]);
   const [mockups, setMockups] = useState<File[]>([]);
   const [mockupMode, setMockupMode] = useState<"upload" | "claude">("upload");
+  const [showStudio, setShowStudio] = useState(false);
+  const [savedMockupPaths, setSavedMockupPaths] = useState<string[]>([]);
 
   useEffect(() => {
     fetch("/api/projects")
@@ -261,12 +264,30 @@ export default function NuovoBRPage() {
                   )}
                 </>
               ) : (
-                <div className="rounded-lg border border-dashed border-border bg-surface/50 px-4 py-6 text-center">
-                  <p className="text-sm font-medium text-muted">Prossimamente</p>
-                  <p className="mt-1 text-xs text-muted">
-                    Genera mockup descrivendo le schermate a Claude.
-                  </p>
-                </div>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowStudio(true)}
+                    className="w-full rounded-lg border border-dashed border-border px-4 py-6 text-center transition-colors hover:border-primary hover:bg-surface/50"
+                  >
+                    <p className="text-sm font-medium text-primary">Apri Claude Design Studio</p>
+                    <p className="mt-1 text-xs text-muted">
+                      Genera mockup descrivendo le schermate a Claude.
+                    </p>
+                  </button>
+                  {savedMockupPaths.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {savedMockupPaths.map((path, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                            PNG
+                          </span>
+                          <span className="flex-1 truncate">{path.split("/").pop()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -291,6 +312,19 @@ export default function NuovoBRPage() {
           </div>
         )}
       </form>
+
+      {showStudio && projectSlug && nome && (
+        <ClaudeDesignStudio
+          projectSlug={projectSlug}
+          brName={nome.toLowerCase().replace(/\s+/g, "-")}
+          onClose={() => setShowStudio(false)}
+          onMockupSaved={(path) => {
+            setSavedMockupPaths((prev) =>
+              prev.includes(path) ? prev : [...prev, path]
+            );
+          }}
+        />
+      )}
     </div>
   );
 }
