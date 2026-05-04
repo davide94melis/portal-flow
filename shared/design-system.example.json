@@ -1,0 +1,24 @@
+{
+  "nome_progetto": "Booking Platform",
+  "colori": {
+    "primary": "#0d6efd",
+    "secondary": "#6c757d",
+    "success": "#198754",
+    "danger": "#dc3545",
+    "warning": "#ffc107",
+    "background": "#ffffff",
+    "surface": "#f8f9fa",
+    "text": "#1a1a1a"
+  },
+  "tipografia": {
+    "font_family": "Inter, sans-serif",
+    "heading_sizes": { "h1": "32px", "h2": "24px", "h3": "18px" }
+  },
+  "componenti": {
+    "border_radius": "8px",
+    "spacing_unit": "8px",
+    "button_style": "rounded",
+    "input_style": "outlined"
+  },
+  "note": "Stile moderno, pulito. Bottoni arrotondati, card con ombra leggera."
+}

@@ -1,0 +1,14 @@
+{
+  "repo": {
+    "owner": "davide94melis",
+    "name": "portal-flow",
+    "branch": "main"
+  },
+  "ruoli": ["funzionale", "tech_lead", "dev", "qa", "admin"],
+  "notifiche": {
+    "in_app": true,
+    "email": false
+  },
+  "pipeline_stages": ["onboard", "review", "clarify", "analyze", "approve", "execute", "verify", "update", "report"],
+  "brs_directory": "brs"
+}
