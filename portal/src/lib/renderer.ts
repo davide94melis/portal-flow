@@ -12,7 +12,7 @@ export async function renderHtmlToPng(html: string): Promise<Buffer> {
     browser = await puppeteer.default.launch({
       args: chromium.default.args,
       executablePath: await chromium.default.executablePath(),
-      headless: chromium.default.headless,
+      headless: true,
     });
   }
 

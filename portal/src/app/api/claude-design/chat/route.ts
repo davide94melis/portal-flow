@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     model: anthropic("claude-opus-4-20250514"),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
-    maxTokens: 8192,
+    maxOutputTokens: 8192,
     async onFinish({ text }) {
       const lastUserMsg = messages[messages.length - 1];
       if (lastUserMsg && lastUserMsg.role === "user") {
