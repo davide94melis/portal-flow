@@ -19,6 +19,7 @@ export default auth((req) => {
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/seed") ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico"
   ) {
