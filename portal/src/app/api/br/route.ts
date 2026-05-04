@@ -25,10 +25,9 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const projectSlug = formData.get("projectSlug") as string;
   const nome = formData.get("nome") as string;
-  const codebaseRaw = formData.get("codebase") as string;
   const teamRaw = formData.get("team") as string;
 
-  if (!projectSlug || !nome || !codebaseRaw) {
+  if (!projectSlug || !nome) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
@@ -36,7 +35,7 @@ export async function POST(req: NextRequest) {
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   const repo = { owner: project.repoOwner, name: project.repoName, branch: project.branch };
-  const codebase = JSON.parse(codebaseRaw);
+  const codebase = project.codebase || [];
   const team = teamRaw ? JSON.parse(teamRaw) : [];
 
   const manifest = await createBR(projectSlug, { nome, creato_da: session.user.email!, codebase, team });

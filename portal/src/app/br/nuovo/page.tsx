@@ -12,11 +12,6 @@ interface Project {
   branch: string;
 }
 
-interface CodebaseItem {
-  nome: string;
-  sigla: string;
-}
-
 export default function NuovoBRPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -26,9 +21,6 @@ export default function NuovoBRPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectSlug, setProjectSlug] = useState("");
   const [nome, setNome] = useState("");
-  const [codebase, setCodebase] = useState<CodebaseItem[]>([
-    { nome: "", sigla: "" },
-  ]);
   const [docs, setDocs] = useState<File[]>([]);
   const [mockups, setMockups] = useState<File[]>([]);
 
@@ -39,28 +31,13 @@ export default function NuovoBRPage() {
       .catch(() => setProjects([]));
   }, []);
 
-  function addCodebase() {
-    setCodebase([...codebase, { nome: "", sigla: "" }]);
-  }
-
-  function updateCodebase(i: number, field: keyof CodebaseItem, value: string) {
-    const updated = [...codebase];
-    updated[i] = { ...updated[i], [field]: value };
-    setCodebase(updated);
-  }
-
-  function removeCodebase(i: number) {
-    setCodebase(codebase.filter((_, idx) => idx !== i));
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const validCodebase = codebase.filter((c) => c.nome && c.sigla);
-    if (!nome || validCodebase.length === 0) {
-      setError("Nome e almeno un codebase sono obbligatori.");
+    if (!nome) {
+      setError("Il nome è obbligatorio.");
       setLoading(false);
       return;
     }
@@ -68,7 +45,6 @@ export default function NuovoBRPage() {
     const fd = new FormData();
     fd.set("projectSlug", projectSlug);
     fd.set("nome", nome.toLowerCase().replace(/\s+/g, "-"));
-    fd.set("codebase", JSON.stringify(validCodebase));
     fd.set("team", JSON.stringify([]));
 
     for (const file of docs) {
@@ -136,7 +112,7 @@ export default function NuovoBRPage() {
 
         {step === 1 && (
           <div className="rounded-lg border border-border bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-medium">2. Informazioni base</h2>
+            <h2 className="mb-4 text-lg font-medium">2. Nome BR</h2>
 
             <div className="mb-4">
               <label className="mb-1 block text-sm font-medium">Nome BR</label>
@@ -150,45 +126,6 @@ export default function NuovoBRPage() {
               <p className="mt-1 text-xs text-muted">
                 Verra convertito in slug (minuscolo, senza spazi)
               </p>
-            </div>
-
-            <div className="mb-4">
-              <label className="mb-2 block text-sm font-medium">Codebase</label>
-              {codebase.map((c, i) => (
-                <div key={i} className="mb-2 flex gap-2">
-                  <input
-                    value={c.nome}
-                    onChange={(e) => updateCodebase(i, "nome", e.target.value)}
-                    placeholder="Nome (es. back-end)"
-                    className="flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                  />
-                  <input
-                    value={c.sigla}
-                    onChange={(e) =>
-                      updateCodebase(i, "sigla", e.target.value.toUpperCase())
-                    }
-                    placeholder="Sigla (es. BE)"
-                    maxLength={5}
-                    className="w-24 rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                  />
-                  {codebase.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeCodebase(i)}
-                      className="text-sm text-danger hover:underline"
-                    >
-                      Rimuovi
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addCodebase}
-                className="text-sm text-primary hover:underline"
-              >
-                + Aggiungi codebase
-              </button>
             </div>
 
             <div className="flex gap-2">

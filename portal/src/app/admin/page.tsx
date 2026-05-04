@@ -16,6 +16,7 @@ interface Project {
   repoOwner: string;
   repoName: string;
   branch: string;
+  codebase: { nome: string; sigla: string }[];
 }
 
 type Tab = "utenti" | "progetti";
@@ -47,6 +48,7 @@ export default function AdminPage() {
   const [projectError, setProjectError] = useState("");
   const [projectNome, setProjectNome] = useState("");
   const [projectSlug, setProjectSlug] = useState("");
+  const [projectCodebase, setProjectCodebase] = useState<{nome:string;sigla:string}[]>([{nome:"",sigla:""}]);
 
   // --- Users fetch ---
   async function fetchUsers() {
@@ -117,6 +119,20 @@ export default function AdminPage() {
     setProjectSlug(slugify(value));
   }
 
+  function addProjectCodebase() {
+    setProjectCodebase([...projectCodebase, { nome: "", sigla: "" }]);
+  }
+
+  function updateProjectCodebase(index: number, field: "nome" | "sigla", value: string) {
+    const updated = [...projectCodebase];
+    updated[index] = { ...updated[index], [field]: value };
+    setProjectCodebase(updated);
+  }
+
+  function removeProjectCodebase(index: number) {
+    setProjectCodebase(projectCodebase.filter((_, i) => i !== index));
+  }
+
   async function handleCreateProject(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setProjectError("");
@@ -131,6 +147,7 @@ export default function AdminPage() {
         repoOwner: fd.get("repoOwner"),
         repoName: fd.get("repoName"),
         branch: fd.get("branch") || "main",
+        codebase: projectCodebase.filter(c => c.nome && c.sigla),
       }),
     });
 
@@ -143,6 +160,7 @@ export default function AdminPage() {
     setProjectFormOpen(false);
     setProjectNome("");
     setProjectSlug("");
+    setProjectCodebase([{ nome: "", sigla: "" }]);
     (e.target as HTMLFormElement).reset();
     fetchProjects();
   }
@@ -373,6 +391,41 @@ export default function AdminPage() {
                     className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
                   />
                 </div>
+                <div className="col-span-2">
+                  <label className="mb-1 block text-sm font-medium">Codebase</label>
+                  {projectCodebase.map((cb, i) => (
+                    <div key={i} className="mb-2 flex items-center gap-2">
+                      <input
+                        placeholder="Nome"
+                        value={cb.nome}
+                        onChange={(e) => updateProjectCodebase(i, "nome", e.target.value)}
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                      />
+                      <input
+                        placeholder="Sigla"
+                        value={cb.sigla}
+                        onChange={(e) => updateProjectCodebase(i, "sigla", e.target.value)}
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                      />
+                      {projectCodebase.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeProjectCodebase(i)}
+                          className="text-sm text-danger hover:underline"
+                        >
+                          Rimuovi
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addProjectCodebase}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    + Aggiungi codebase
+                  </button>
+                </div>
               </div>
               {projectError && <p className="mt-2 text-sm text-danger">{projectError}</p>}
               <button
@@ -392,13 +445,14 @@ export default function AdminPage() {
                   <th className="px-4 py-3 font-medium text-muted">Slug</th>
                   <th className="px-4 py-3 font-medium text-muted">Repository</th>
                   <th className="px-4 py-3 font-medium text-muted">Branch</th>
+                  <th className="px-4 py-3 font-medium text-muted">Codebase</th>
                   <th className="px-4 py-3 font-medium text-muted"></th>
                 </tr>
               </thead>
               <tbody>
                 {projects.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-muted">
+                    <td colSpan={6} className="px-4 py-6 text-center text-muted">
                       Nessun progetto registrato.
                     </td>
                   </tr>
@@ -413,6 +467,11 @@ export default function AdminPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted">{project.branch}</td>
+                      <td className="px-4 py-3 text-muted">
+                        {project.codebase?.length
+                          ? project.codebase.map(c => c.sigla).join(", ")
+                          : "—"}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleDeleteProject(project.slug)}

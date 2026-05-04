@@ -5,6 +5,7 @@ export interface Project {
   repoOwner: string;
   repoName: string;
   branch: string;
+  codebase: CodebaseEntry[];
 }
 
 export interface RepoRef {

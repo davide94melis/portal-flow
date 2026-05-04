@@ -63,6 +63,13 @@ export async function PATCH(
         if (c) { c.validato_qa = true; c.risultato_test = risultato; }
         break;
       }
+      case "update_codebase": {
+        const role = session.user?.role;
+        if (role !== "tech_lead" && role !== "admin") break;
+        const { codebase } = data as { codebase: { nome: string; sigla: string }[] };
+        m.codebase = codebase;
+        break;
+      }
     }
     m.timeline.push({
       data: new Date().toISOString(),

@@ -13,11 +13,11 @@ export async function POST(req: NextRequest) {
   if (!session?.user || session.user.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
-  const { nome, slug, repoOwner, repoName, branch } = await req.json();
+  const { nome, slug, repoOwner, repoName, branch, codebase } = await req.json();
   if (!nome || !slug || !repoOwner || !repoName) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
-  const project = await createProject({ nome, slug, repoOwner, repoName, branch: branch || "main" });
+  const project = await createProject({ nome, slug, repoOwner, repoName, branch: branch || "main", codebase: codebase || [] });
   return NextResponse.json(project, { status: 201 });
 }
 
