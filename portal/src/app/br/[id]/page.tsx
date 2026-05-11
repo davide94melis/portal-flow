@@ -164,7 +164,15 @@ export default function BRDetailPage() {
         <Link href={`/br/${id}/review`} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-surface">Review</Link>
         <Link href={`/br/${id}/piano`} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-surface">Piano</Link>
         <Link href={`/br/${id}/task`} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-surface">Task</Link>
-        <Link href={`/br/${id}/qa`} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-surface">QA</Link>
+        {canEditCodebase && (
+          <a
+            href={`/api/br/${id}/export`}
+            className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-surface"
+            download
+          >
+            Esporta Excel
+          </a>
+        )}
       </div>
 
       <div className="rounded-lg border border-border bg-white p-4 shadow-sm">

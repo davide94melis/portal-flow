@@ -78,27 +78,6 @@
     ]
   },
 
-  "qa": {
-    "criteri_accettazione": [
-      {
-        "id": "QA-001",
-        "funzionalita": "Booking - creazione",
-        "criterio": "L'utente puo' creare un booking con tutti i campi obbligatori compilati",
-        "fonte": "review",
-        "validato_qa": false,
-        "risultato_test": null
-      },
-      {
-        "id": "QA-002",
-        "funzionalita": "Booking - validazione",
-        "criterio": "Il sistema mostra errori di validazione per campi obbligatori mancanti",
-        "fonte": "review",
-        "validato_qa": false,
-        "risultato_test": null
-      }
-    ]
-  },
-
   "gap_analysis": {
     "data": null,
     "matrice": [],
@@ -125,7 +104,6 @@
         "branch": null,
         "progresso": 0,
         "stato": "da_iniziare",
-        "qa_criteri": ["QA-001"],
         "note": ""
       }
     ]

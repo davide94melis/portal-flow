@@ -8,7 +8,7 @@ const stageColors: Record<string, string> = {
   onboard: "bg-secondary/10 text-secondary", review: "bg-warning/20 text-warning",
   clarify: "bg-warning/20 text-warning", analyze: "bg-primary/10 text-primary",
   approve: "bg-primary/10 text-primary", execute: "bg-success/10 text-success",
-  verify: "bg-success/10 text-success", update: "bg-danger/10 text-danger",
+  update: "bg-danger/10 text-danger",
   report: "bg-success/10 text-success",
 };
 

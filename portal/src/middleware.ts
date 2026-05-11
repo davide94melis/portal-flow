@@ -10,7 +10,6 @@ const routeRoles: Record<string, UserRole[]> = {
 
 const dynamicRouteRoles: { pattern: RegExp; roles: UserRole[] }[] = [
   { pattern: /^\/br\/[^/]+\/task$/, roles: ["dev"] },
-  { pattern: /^\/br\/[^/]+\/qa$/, roles: ["qa"] },
 ];
 
 export default auth((req) => {

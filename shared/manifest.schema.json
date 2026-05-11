@@ -4,7 +4,7 @@
   "title": "BR Manifest",
   "description": "Single source of truth per ogni Business Requirement nel pipeline POM",
   "type": "object",
-  "required": ["version", "nome", "data_creazione", "creato_da", "stato_pipeline", "codebase", "documenti", "team", "review", "qa", "gap_analysis", "piano", "timeline"],
+  "required": ["version", "nome", "data_creazione", "creato_da", "stato_pipeline", "codebase", "documenti", "team", "review", "gap_analysis", "piano", "timeline"],
   "properties": {
     "version": {
       "type": "string",
@@ -27,7 +27,7 @@
     },
     "stato_pipeline": {
       "type": "string",
-      "enum": ["onboard", "review", "clarify", "analyze", "approve", "execute", "verify", "update", "report"],
+      "enum": ["onboard", "review", "clarify", "analyze", "approve", "execute", "update", "report"],
       "description": "Stage corrente del pipeline"
     },
     "codebase": {
@@ -51,9 +51,6 @@
     },
     "review": {
       "$ref": "#/$defs/review"
-    },
-    "qa": {
-      "$ref": "#/$defs/qa"
     },
     "gap_analysis": {
       "$ref": "#/$defs/gap_analysis"
@@ -274,48 +271,6 @@
       },
       "additionalProperties": false
     },
-    "qa": {
-      "type": "object",
-      "required": ["criteri_accettazione"],
-      "properties": {
-        "criteri_accettazione": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/criterio_qa"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "criterio_qa": {
-      "type": "object",
-      "required": ["id", "funzionalita", "criterio", "fonte", "validato_qa"],
-      "properties": {
-        "id": {
-          "type": "string",
-          "pattern": "^QA-\\d{3}$"
-        },
-        "funzionalita": {
-          "type": "string"
-        },
-        "criterio": {
-          "type": "string"
-        },
-        "fonte": {
-          "type": "string",
-          "enum": ["review", "analisi", "qa_team"],
-          "description": "Chi ha generato il criterio"
-        },
-        "validato_qa": {
-          "type": "boolean"
-        },
-        "risultato_test": {
-          "type": ["string", "null"],
-          "enum": ["pass", "fail", null]
-        }
-      },
-      "additionalProperties": false
-    },
     "gap_analysis": {
       "type": "object",
       "required": ["data", "matrice", "gap_aperti"],
@@ -423,7 +378,7 @@
     },
     "task": {
       "type": "object",
-      "required": ["id", "stream", "owner", "area", "priorita", "wave", "attivita", "descrizione", "dipendenze", "effort_gg", "stato", "qa_criteri"],
+      "required": ["id", "stream", "owner", "area", "priorita", "wave", "attivita", "descrizione", "dipendenze", "effort_gg", "stato"],
       "properties": {
         "id": {
           "type": "string",
@@ -483,13 +438,6 @@
           "type": "string",
           "enum": ["da_iniziare", "in_corso", "completata", "bloccata", "annullata", "sospesa"]
         },
-        "qa_criteri": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "ID dei criteri QA linkati a questa task"
-        },
         "note": {
           "type": "string"
         }
@@ -510,14 +458,14 @@
         },
         "ruolo": {
           "type": "string",
-          "enum": ["funzionale", "tech_lead", "dev", "qa", "admin", "sistema"]
+          "enum": ["funzionale", "tech_lead", "dev", "admin", "sistema"]
         },
         "azione": {
           "type": "string"
         },
         "stage": {
           "type": "string",
-          "enum": ["onboard", "review", "clarify", "analyze", "approve", "execute", "verify", "update", "report"]
+          "enum": ["onboard", "review", "clarify", "analyze", "approve", "execute", "update", "report"]
         }
       },
       "additionalProperties": false

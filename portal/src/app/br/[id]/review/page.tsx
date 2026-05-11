@@ -41,6 +41,14 @@ export default function ReviewPage() {
             <h3 className="font-medium">{p.titolo}</h3>
           </div>
           {p.stato === "risposto" && <span className="rounded bg-success/10 px-2 py-0.5 text-xs text-success">Risposto</span>}
+          {(() => {
+            if (!manifest) return null;
+            const linked = manifest.review.assunzioni.find((a) => a.problema_rif === p.id);
+            if (!linked) return null;
+            if (linked.stato === "confermata") return <span className="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary">Assunzione confermata</span>;
+            if (linked.stato === "rifiutata") return <span className="rounded bg-warning/10 px-2 py-0.5 text-xs text-warning">Usata la tua risposta</span>;
+            return null;
+          })()}
         </div>
         <p className="mt-1 text-sm text-muted">{p.problema}</p>
         <p className="mt-2 text-sm"><strong>Domanda:</strong> {p.domanda}</p>

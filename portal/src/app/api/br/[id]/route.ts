@@ -40,14 +40,24 @@ export async function PATCH(
       case "respond_problem": {
         const { problemId, risposta } = data as { problemId: string; risposta: string };
         const p = m.review.problemi.find((x) => x.id === problemId);
-        if (p) { p.risposta = risposta; p.data_risposta = new Date().toISOString(); p.stato = "risposto"; }
+        if (p) {
+          p.risposta = risposta;
+          p.data_risposta = new Date().toISOString();
+          p.stato = "risposto";
+          const linked = m.review.assunzioni.find((a) => a.problema_rif === p.id);
+          if (linked) {
+            linked.risposta_funzionale = risposta;
+          }
+        }
         if (m.stato_pipeline === "review") m.stato_pipeline = "clarify";
         break;
       }
       case "respond_assumption": {
         const { assumptionId, risposta } = data as { assumptionId: string; risposta: string };
         const a = m.review.assunzioni.find((x) => x.id === assumptionId);
-        if (a) a.risposta_funzionale = risposta;
+        if (a) {
+          a.risposta_funzionale = risposta;
+        }
         break;
       }
       case "approve_plan": {
@@ -55,12 +65,6 @@ export async function PATCH(
         m.piano.data_approvazione = new Date().toISOString();
         m.piano.approvato_da = session.user?.email || null;
         m.stato_pipeline = "approve";
-        break;
-      }
-      case "qa_validate": {
-        const { criterioId, risultato } = data as { criterioId: string; risultato: "pass" | "fail" };
-        const c = m.qa.criteri_accettazione.find((x) => x.id === criterioId);
-        if (c) { c.validato_qa = true; c.risultato_test = risultato; }
         break;
       }
       case "update_codebase": {

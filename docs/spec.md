@@ -4,7 +4,7 @@ Data: 2026-05-04
 
 ## Problema
 
-La suite attuale di 6 skill BR (br-reviewer, br-clarify, br-analyzer, br-executor, br-updater, br-progress-report) e' developer-centric: lo sviluppatore avvia tutto, il funzionale interviene solo passivamente compilando un DOCX. Il ciclo DOCX e' lento (conversioni pandoc, corruzione file, round multipli = giorni/settimane). Non esiste dashboard, QA e' assente, non c'e' separazione tra chi pianifica e chi sviluppa.
+La suite attuale di 6 skill BR (br-reviewer, br-clarify, br-analyzer, br-executor, br-updater, br-progress-report) e' developer-centric: lo sviluppatore avvia tutto, il funzionale interviene solo passivamente compilando un DOCX. Il ciclo DOCX e' lento (conversioni pandoc, corruzione file, round multipli = giorni/settimane). Non esiste dashboard, non c'e' separazione tra chi pianifica e chi sviluppa.
 
 ## Soluzione
 
@@ -46,7 +46,7 @@ Il funzionale diventa l'iniziatore del flusso, non piu' il destinatario passivo.
 ┌──────────────────────────────────▼──────────────────────────────────────┐
 │                    COMPONENTE 2: BR Portal (Vercel)                     │
 │                                                                         │
-│  Next.js su Vercel. Always-on. 4 viste per ruolo.                      │
+│  Next.js su Vercel. Always-on. 3 viste per ruolo.                      │
 │  Auth: Vercel KV (Redis) per utenti/sessioni.                          │
 │  Storage contenuti: repo git via GitHub API.                           │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -100,14 +100,13 @@ Creato una volta alla prima invocazione di br-pipeline. Il manifest non contiene
 
 ## Ruoli e Viste
 
-4 ruoli con responsabilita' separate. Account con email+password, admin approva e assegna ruolo.
+3 ruoli con responsabilita' separate. Account con email+password, admin approva e assegna ruolo.
 
 | Ruolo | Responsabilita' | Dove lavora |
 |---|---|---|
 | **Funzionale** | Crea BR, carica docs/mockup, risponde alle domande del review | Portale |
 | **Tech Lead / PM** | Lancia review e analisi, valida e approva piano (gate), assegna task, coordina, monitora | Portale + Claude Code |
 | **Dev** | Esegue le task assegnate, scrive codice, aggiorna progresso | Claude Code (br-pipeline) |
-| **QA** | Valida criteri di accettazione, esegue test, segnala difetti | Portale |
 
 ### Viste portale
 
@@ -132,52 +131,43 @@ Creato una volta alla prima invocazione di br-pipeline. Il manifest non contiene
 - I propri blocchi
 - Nient'altro — nessuna distrazione
 
-**Vista QA:**
-- Criteri di accettazione da validare (per BR)
-- Risultati test da registrare
-- Difetti da segnalare
-- Stato di copertura QA
-
 ---
 
 ## Pipeline — Stage e Flusso
 
 ```
-Funzionale         TL/PM              Dev              QA
-    │                │                  │                │
-    │ 1. Crea BR     │                  │                │
-    │ sul portale    │                  │                │
-    │────────────────►                  │                │
-    │                │ 2. Notifica      │                │
-    │                │ "Nuovo BR"       │                │
-    │                │                  │                │
-    │                │ 3. Lancia review │                │
-    │                │ (Claude Code)    │                │
-    │                │                  │                │
-    │ 4. Riceve      │                  │                │
-    │ domande sul    │                  │                │
-    │ portale        │                  │                │
-    │                │                  │                │
-    │ 5. Risponde    │                  │                │
-    │ inline         │                  │                │
-    │────────────────►                  │                │
-    │                │ 6. Lancia analisi│                │
-    │                │ gap + piano      │                │
-    │                │                  │                │
-    │                │ 7. GATE:         │                │
-    │                │ approva piano    │                │
-    │                │────────────────►│                │
-    │                │                  │ 8. Vede task   │
-    │                │                  │ assegnate      │
-    │                │                  │                │
-    │                │                  │ 9. Esegue con  │
-    │                │                  │ br-pipeline    │
-    │                │                  │                │
-    │                │                  │                │ 10. QA valida
-    │                │                  │                │ criteri
-    │                │                  │                │
-    │                │ 11. Monitora     │                │
-    │                │ dashboard        │                │
+Funzionale         TL/PM              Dev
+    │                │                  │
+    │ 1. Crea BR     │                  │
+    │ sul portale    │                  │
+    │────────────────►                  │
+    │                │ 2. Notifica      │
+    │                │ "Nuovo BR"       │
+    │                │                  │
+    │                │ 3. Lancia review │
+    │                │ (Claude Code)    │
+    │                │                  │
+    │ 4. Riceve      │                  │
+    │ domande sul    │                  │
+    │ portale        │                  │
+    │                │                  │
+    │ 5. Risponde    │                  │
+    │ inline         │                  │
+    │────────────────►                  │
+    │                │ 6. Lancia analisi│
+    │                │ gap + piano      │
+    │                │                  │
+    │                │ 7. GATE:         │
+    │                │ approva piano    │
+    │                │────────────────►│
+    │                │                  │ 8. Vede task
+    │                │                  │ assegnate
+    │                │                  │
+    │                │                  │ 9. Esegue con
+    │                │                  │ br-pipeline
+    │                │                  │
+    │                │ 10. Monitora     │
+    │                │ dashboard        │
 ```
 
 ### Stage del pipeline
@@ -185,14 +175,16 @@ Funzionale         TL/PM              Dev              QA
 | Stage | ID | Chi lo avvia | Cosa fa |
 |---|---|---|---|
 | **Onboard** | S0 | Funzionale (portale) | Crea BR, carica docs/mockup, assegna team |
-| **Review** | S1 | TL/PM (Claude Code) | Analisi docs + codice, genera domande, criteri QA iniziali |
+| **Review** | S1 | TL/PM (Claude Code) | Analisi docs + codice, genera domande |
 | **Clarify** | S2 | Funzionale (portale) | Risponde alle domande inline. Il pipeline rileva e rivaluta |
-| **Analyze** | S3 | TL/PM (Claude Code) | Gap analysis, genera piano, test plan QA |
+| **Analyze** | S3 | TL/PM (Claude Code) | Gap analysis, genera piano |
 | **Approve** | S4 | TL/PM (portale) | GATE: valida e approva il piano. Solo dopo i dev vedono le task |
 | **Execute** | S5 | Dev (Claude Code) | Esegue task con sottoagenti, aggiorna progresso |
-| **Verify** | S6 | QA (portale) | Verifica criteri accettazione per task completate |
-| **Update** | S7 | TL/PM (Claude Code) | Se il BR cambia, aggiorna piano preservando progresso |
-| **Report** | S8 | Chiunque (portale) | Dashboard live, Excel esportabile |
+
+> L'executor implementa una verifica in 3 fasi (tecnica, coerenza col requisito, riesame finale) e un ciclo di verifica finale con tabella di tracciabilita' requisiti. I test (happy path + edge case + error case) sono obbligatori per ogni sotto-step.
+
+| **Update** | S6 | TL/PM (Claude Code) | Se il BR cambia, aggiorna piano preservando progresso |
+| **Report** | S7 | Chiunque (portale) | Dashboard live, Excel esportabile |
 
 ---
 
@@ -258,19 +250,6 @@ Single source of truth per ogni BR. Vive nel repo git come `brs/<nome-br>/manife
     "disallineamenti_codice": []
   },
 
-  "qa": {
-    "criteri_accettazione": [
-      {
-        "id": "QA-001",
-        "funzionalita": "Booking - creazione",
-        "criterio": "L'utente puo' creare un booking con tutti i campi obbligatori",
-        "fonte": "review",
-        "validato_qa": false,
-        "risultato_test": null
-      }
-    ]
-  },
-
   "gap_analysis": {
     "data": null,
     "matrice": [],
@@ -297,7 +276,6 @@ Single source of truth per ogni BR. Vive nel repo git come `brs/<nome-br>/manife
         "branch": null,
         "progresso": 0,
         "stato": "da_iniziare",
-        "qa_criteri": ["QA-001"],
         "note": ""
       }
     ]
@@ -320,7 +298,6 @@ Single source of truth per ogni BR. Vive nel repo git come `brs/<nome-br>/manife
 - **Scrivi una volta, leggi ovunque**: codebase, team, documenti raccolti in S0, mai piu' chiesti
 - **Stato pipeline esplicito**: il campo `stato_pipeline` dice dove siamo, l'orchestratore sa cosa proporre
 - **Timeline auditabile**: ogni azione significativa finisce nella timeline con attore, ruolo, data
-- **QA first-class citizen**: criteri nel manifest, linkati alle task via `qa_criteri[]`
 - **Gate esplicito**: `piano.approvato` deve essere `true` prima che i dev vedano le task
 - **Retrocompatibilita'**: i file MD (GAP_REPORT, PIANO, PROGRESSO, REVIEW) vengono generati dal manifest come viste di lettura per chi li preferisce
 
@@ -360,31 +337,6 @@ Dopo il review (S1), il funzionale vede le domande sul portale:
 
 ---
 
-## Integrazione QA
-
-Il QA e' presente in 3 stage:
-
-### S1 — Review
-
-Il pipeline genera criteri di accettazione iniziali dalla documentazione del BR. Il QA li vede sul portale e puo':
-- Validare i criteri proposti
-- Modificarli o aggiungerne di nuovi
-- Definire scenari di test
-
-### S3 — Analyze
-
-Il pipeline arricchisce i criteri QA con dettagli tecnici dal gap report. Il QA rivede il test plan e lo valida prima dell'approvazione del piano.
-
-### S6 — Verify
-
-Quando un dev completa una task, il QA la vede sul portale con i criteri linkati (`qa_criteri[]`). Il QA:
-- Esegue i test (manuali o automatici)
-- Registra il risultato (pass/fail) per ogni criterio
-- Segnala difetti con descrizione
-- Una task e' veramente "completata" solo quando il QA la valida
-
----
-
 ## br-pipeline (Skill CLI)
 
 ### Invocazione
@@ -409,9 +361,9 @@ La skill contiene la logica di tutti gli stage, ma li espone in modo diverso in 
 |---|---|---|
 | Review (S1) | Analisi docs + codice, genera domande | br-reviewer attuale |
 | Clarify (S2) | Legge risposte dal manifest, rivaluta | br-clarify attuale |
-| Analyze (S3) | Gap analysis + piano + QA test plan | br-analyzer attuale |
+| Analyze (S3) | Gap analysis + piano | br-analyzer attuale |
 | Execute (S5) | Esecuzione task con sottoagenti | br-executor attuale |
-| Update (S7) | Delta BR, aggiornamento piano | br-updater attuale |
+| Update (S6) | Delta BR, aggiornamento piano | br-updater attuale |
 
 Le skill esistenti restano intatte e utilizzabili standalone.
 
@@ -447,7 +399,6 @@ Le skill esistenti restano intatte e utilizzabili standalone.
 | `/br/[id]/review` | Funzionale | Domande del review, rispondi inline |
 | `/br/[id]/piano` | TL/PM | Piano con approvazione, assegnazione task |
 | `/br/[id]/task` | Dev | Le proprie task assegnate |
-| `/br/[id]/qa` | QA | Criteri, test results, difetti |
 | `/admin` | Admin | Gestione utenti, ruoli, design system |
 
 ### Notifiche
@@ -465,8 +416,7 @@ Eventi che generano notifica:
 | Risposte ricevute | TL/PM |
 | Piano pronto per approvazione | TL/PM |
 | Piano approvato, task assegnate | Dev assegnati |
-| Task completata | QA, TL/PM |
-| QA valida/rifiuta task | Dev, TL/PM |
+| Task completata | TL/PM |
 | BR aggiornato | TL/PM |
 
 ---
@@ -517,7 +467,6 @@ Quando il funzionale crea mockup con Claude Design, il tema viene precaricato co
 | DOCX | Eliminato | Sostituito da interazione inline sul portale |
 | Claude Design | Opzionale | Acceleratore per mockup, non obbligatorio |
 | Gate piano | Esplicito (TL/PM approva) | I dev non vedono task finche' il piano non e' approvato |
-| QA | End-to-end | Criteri nel review, test plan nell'analisi, verifica nell'esecuzione |
 | Real-time | Webhooks GitHub → Vercel | Nessun polling, notifiche push |
 | Retrocompatibilita' MD | Si | I file MD vengono generati come viste del manifest per chi li preferisce |
 
@@ -540,7 +489,7 @@ Quando il funzionale crea mockup con Claude Design, il tema viene precaricato co
 - Deploy su Vercel
 - GitHub API per lettura/scrittura repo
 - Vercel KV per auth
-- Viste per ruolo (Funzionale, TL/PM, Dev, QA)
+- Viste per ruolo (Funzionale, TL/PM, Dev)
 - Integrazione Claude Design per mockup
 - Sistema notifiche (in-app + email opzionale)
 - Pagina admin per gestione utenti e design system

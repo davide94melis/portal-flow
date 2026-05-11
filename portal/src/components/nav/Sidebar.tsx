@@ -22,9 +22,6 @@ const navByRole: Record<UserRole, NavItem[]> = {
   dev: [
     { label: "Le mie task", href: "/br" },
   ],
-  qa: [
-    { label: "Validazione", href: "/br" },
-  ],
   admin: [
     { label: "Dashboard", href: "/dashboard" },
     { label: "Tutti i BR", href: "/br" },

@@ -21,7 +21,6 @@ export type StatoPipeline =
   | "analyze"
   | "approve"
   | "execute"
-  | "verify"
   | "update"
   | "report";
 
@@ -53,7 +52,6 @@ export type Ruolo =
   | "funzionale"
   | "tech_lead"
   | "dev"
-  | "qa"
   | "admin"
   | "sistema";
 
@@ -118,18 +116,6 @@ export interface Review {
   disallineamenti_codice: Disallineamento[];
 }
 
-export interface CriterioQA {
-  id: string;
-  funzionalita: string;
-  criterio: string;
-  fonte: "review" | "analisi" | "qa_team";
-  validato_qa: boolean;
-  risultato_test: "pass" | "fail" | null;
-}
-
-export interface QA {
-  criteri_accettazione: CriterioQA[];
-}
 
 export interface MatriceEntry {
   id: string;
@@ -167,7 +153,6 @@ export interface Task {
   branch: string | null;
   progresso: number;
   stato: StatoTask;
-  qa_criteri: string[];
   note?: string;
 }
 
@@ -197,7 +182,6 @@ export interface BRManifest {
   documenti: Documento[];
   team: TeamMember[];
   review: Review;
-  qa: QA;
   gap_analysis: GapAnalysis;
   piano: Piano;
   timeline: TimelineEntry[];

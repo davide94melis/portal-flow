@@ -119,6 +119,112 @@ export async function listBRs(projectSlug?: string): Promise<BRSummary[]> {
   return summaries;
 }
 
+export interface AggregatedTask {
+  id: string;
+  progresso: number;
+  stato: string;
+  branch: string | null;
+  sourcesBranch: string;
+}
+
+export async function getAggregatedProgress(
+  projectSlug: string,
+  brName: string
+): Promise<AggregatedTask[] | null> {
+  const project = await getProject(projectSlug);
+  if (!project) return null;
+
+  const repo = toRepoRef(project);
+  const manifest = await getManifest(projectSlug, brName);
+  if (!manifest) return null;
+
+  // Collect branch names referenced by tasks
+  const taskBranches = new Set<string>();
+  for (const task of manifest.piano.task) {
+    if (task.branch) taskBranches.add(task.branch);
+  }
+
+  if (taskBranches.size === 0) {
+    return manifest.piano.task.map((t) => ({
+      id: t.id,
+      progresso: t.progresso,
+      stato: t.stato,
+      branch: t.branch,
+      sourcesBranch: repo.branch,
+    }));
+  }
+
+  // Try cache first
+  const cacheKey = `aggregated:${projectSlug}:${brName}`;
+  const cached = await redis.get<AggregatedTask[]>(cacheKey);
+  if (cached) return cached;
+
+  // Read manifest from each task branch
+  const branchManifests: Map<string, BRManifest> = new Map();
+  for (const branch of taskBranches) {
+    try {
+      const content = await readFile(
+        { ...repo, branch },
+        `${BRS_DIR}/${brName}/manifest.json`
+      );
+      if (content) {
+        branchManifests.set(branch, JSON.parse(content) as BRManifest);
+      }
+    } catch {
+      // Branch might not exist or manifest not found — skip
+    }
+  }
+
+  // Build aggregated view: highest progress wins
+  const stateOrder: Record<string, number> = {
+    da_iniziare: 0,
+    bloccata: 1,
+    sospesa: 1,
+    annullata: 1,
+    in_corso: 2,
+    completata: 3,
+  };
+
+  const aggregated: AggregatedTask[] = manifest.piano.task.map((baseTask) => {
+    let best = {
+      progresso: baseTask.progresso,
+      stato: baseTask.stato,
+      source: repo.branch,
+    };
+
+    for (const [branch, branchManifest] of branchManifests) {
+      const branchTask = branchManifest.piano.task.find((t) => t.id === baseTask.id);
+      if (!branchTask) continue;
+
+      if (branchTask.stato === "completata") {
+        best = { progresso: 100, stato: "completata", source: branch };
+        break;
+      }
+
+      if (
+        branchTask.progresso > best.progresso ||
+        (branchTask.progresso === best.progresso &&
+          (stateOrder[branchTask.stato] ?? 0) > (stateOrder[best.stato] ?? 0))
+      ) {
+        best = { progresso: branchTask.progresso, stato: branchTask.stato, source: branch };
+      }
+    }
+
+    return {
+      id: baseTask.id,
+      progresso: best.progresso,
+      stato: best.stato,
+      branch: baseTask.branch,
+      sourcesBranch: best.source,
+    };
+  });
+
+  // Cache for 60 seconds
+  await redis.set(cacheKey, aggregated, { ex: 60 });
+
+  return aggregated;
+}
+
 export async function createBR(
   projectSlug: string,
   data: {
@@ -142,7 +248,6 @@ export async function createBR(
     documenti: [],
     team: data.team,
     review: { data: null, esito: null, problemi: [], assunzioni: [], disallineamenti_codice: [] },
-    qa: { criteri_accettazione: [] },
     gap_analysis: { data: null, matrice: [], gap_aperti: [] },
     piano: { approvato: false, data_approvazione: null, approvato_da: null, stream: [], task: [] },
     timeline: [{

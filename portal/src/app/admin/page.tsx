@@ -21,7 +21,7 @@ interface Project {
 
 type Tab = "utenti" | "progetti";
 
-const ROLES: UserRole[] = ["funzionale", "tech_lead", "dev", "qa", "admin"];
+const ROLES: UserRole[] = ["funzionale", "tech_lead", "dev", "admin"];
 
 function slugify(value: string): string {
   return value

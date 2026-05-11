@@ -41,7 +41,6 @@ portal-flow/
             review/page.tsx
             piano/page.tsx
             task/page.tsx
-            qa/page.tsx
         admin/page.tsx
         api/
           auth/[...nextauth]/route.ts
@@ -110,11 +109,10 @@ mkdir -p skill/br-pipeline portal shared docs
   - `documenti[]` con `originale`, `convertito`, `tipo`
   - `team[]` con `nome`, `email`, `ruolo`, `seniority`, `reviewer`
   - `review` con `data`, `esito`, `problemi[]`, `assunzioni[]`, `disallineamenti_codice[]`
-  - `qa` con `criteri_accettazione[]`
   - `gap_analysis` con `data`, `matrice[]`, `gap_aperti[]`
-  - `piano` con `approvato`, `stream[]`, `task[]` (inclusi campi `qa_criteri[]`, `stato`, `progresso`)
+  - `piano` con `approvato`, `stream[]`, `task[]` (inclusi campi `stato`, `progresso`)
   - `timeline[]` con `data`, `attore`, `ruolo`, `azione`, `stage`
-  - Enumerazioni: `stato_pipeline` (onboard|review|clarify|analyze|approve|execute|verify|update|report), `stato_task` (da_iniziare|in_corso|completata|bloccata|annullata|sospesa), `priorita` (P0|P1|P2)
+  - Enumerazioni: `stato_pipeline` (onboard|review|clarify|analyze|approve|execute|update|report), `stato_task` (da_iniziare|in_corso|completata|bloccata|annullata|sospesa), `priorita` (P0|P1|P2)
 
 - [ ] **Step 2:** Creare `shared/manifest.example.json` — esempio compilato completo (quello nella spec, pulito e validato contro lo schema)
 
@@ -159,7 +157,7 @@ mkdir -p skill/br-pipeline portal shared docs
 
 - [ ] **Step 1:** Scrivere `SKILL.md` con:
   - **Frontmatter**: name, description (con trigger: "br-pipeline", "pipeline br", "le mie task")
-  - **Introduzione**: posizionamento nel flusso, diagramma degli stage (S0-S8)
+  - **Introduzione**: posizionamento nel flusso, diagramma degli stage (S0-S7)
   - **Entry point unico**: logica di avvio che:
     1. Esegue `git pull` per sincronizzare
     2. Cerca manifest in `brs/*/manifest.json`
@@ -207,7 +205,6 @@ mkdir -p skill/br-pipeline portal shared docs
   - **Precondizioni**: `stato_pipeline == "onboard"`, documenti caricati in `brs/<nome>/docs/`
   - **Conversione documenti**: se i file in `docs/` non sono MD, convertili con doc-to-markdown/markitdown e salva il `.md` convertito; aggiorna `documenti[].convertito` nel manifest
   - **Analisi documentazione**: stessa logica di br-reviewer (analisi intra-doc, inter-doc, check leggero vs codice) ma scrivendo i risultati in `manifest.review.problemi[]` e `manifest.review.assunzioni[]`
-  - **Generazione criteri QA iniziali**: popola `manifest.qa.criteri_accettazione[]` dalla documentazione
   - **Aggiornamento manifest**: `stato_pipeline = "review"`, `review.data`, `review.esito`, timeline entry
   - **Generazione vista MD**: genera `brs/<nome>/REVIEW_BR.md` dal manifest (retrocompatibilita')
   - **Output**: riepilogo problemi (bloccanti vs non bloccanti) e prossimo step proposto
@@ -225,8 +222,7 @@ mkdir -p skill/br-pipeline portal shared docs
   - **Incorpora risposte**: legge `review.problemi[].risposta` e `review.assunzioni[].risposta_funzionale` (compilati dal portale in S2)
   - **Esplorazione codebase**: per ogni `codebase[]` nel manifest, usa path da `.br-local.json` per esplorare struttura, modello dati, API, servizi (stessa logica di br-analyzer Fase 3)
   - **Gap analysis**: popola `manifest.gap_analysis.matrice[]` e `manifest.gap_analysis.gap_aperti[]`
-  - **Generazione piano**: popola `manifest.piano.stream[]` e `manifest.piano.task[]` con tutti i campi (id, stream, owner, area, priorita, wave, attivita, descrizione, dipendenze, effort_gg, qa_criteri)
-  - **QA test plan**: arricchisce `manifest.qa.criteri_accettazione[]` con dettagli tecnici
+  - **Generazione piano**: popola `manifest.piano.stream[]` e `manifest.piano.task[]` con tutti i campi (id, stream, owner, area, priorita, wave, attivita, descrizione, dipendenze, effort_gg)
   - **Aggiornamento manifest**: `stato_pipeline = "analyze"`, timeline entry
   - **Generazione viste MD**: genera GAP_REPORT_BR.md e PIANO_IMPLEMENTAZIONE_BR.md dal manifest
   - **Output**: riepilogo gap, piano proposto, prossimo step (gate approvazione TL/PM)
@@ -249,6 +245,8 @@ mkdir -p skill/br-pipeline portal shared docs
   - **Gestione merge task (T-MERGE-*)**: guida il merge senza sottoagenti
   - **Aggiornamento manifest**: aggiorna `task[].progresso`, `task[].stato`, `task[].branch`; timeline entry per ogni cambio di stato
   - **Suggerimento commit**: stessa logica di br-executor (mai committare autonomamente)
+  - **Verifica in 3 fasi**: ogni sotto-step verificato con Fase A (test + build), Fase B (coerenza requisito), Fase C (riesame finale). Test edge case obbligatori.
+  - **Ciclo di verifica finale**: tabella tracciabilita' requisito → implementazione → test prima di completare la task
   - **Generazione vista MD**: aggiorna PROGRESSO_BR.md dal manifest
 
 - [ ] **Step 2:** Commit
@@ -357,7 +355,7 @@ npm install -D @types/node
 - [ ] **Step 1:** Configurare NextAuth con CredentialsProvider (email+password):
   - Vercel KV per storage utenti (hash password con bcrypt)
   - Vercel KV per sessioni
-  - Ruoli nel JWT: `funzionale`, `tech_lead`, `dev`, `qa`, `admin`
+  - Ruoli nel JWT: `funzionale`, `tech_lead`, `dev`, `admin`
 
 - [ ] **Step 2:** Creare pagina login (`/login`) con form email+password
 
@@ -365,7 +363,6 @@ npm install -D @types/node
   - `/dashboard` → solo `tech_lead`
   - `/br/nuovo` → solo `funzionale`
   - `/br/[id]/task` → solo `dev`
-  - `/br/[id]/qa` → solo `qa`
   - `/admin` → solo `admin`
   - `/br/[id]` → tutti (vista cambia per ruolo)
 
@@ -408,7 +405,6 @@ npm install -D @types/node
   - Funzionale: "I miei BR", "Nuovo BR"
   - TL/PM: "Dashboard", "Tutti i BR"
   - Dev: "Le mie task"
-  - QA: "Validazione"
   - Admin: "Utenti", "Design System"
 
 - [ ] **Step 2:** Badge notifiche nella sidebar (conteggio eventi non letti)
@@ -529,25 +525,7 @@ npm install -D @types/node
 
 ---
 
-### Task 6.5: Vista QA — Validazione (S6)
-
-**Files:**
-- Create: `portal/src/app/br/[id]/qa/page.tsx`
-- Create: `portal/src/components/qa/CriteriaList.tsx`
-- Create: `portal/src/components/qa/DefectForm.tsx`
-
-- [ ] **Step 1:** Pagina `/br/[id]/qa` con:
-  - Criteri di accettazione per BR (`qa.criteri_accettazione[]`)
-  - Per ogni task completata: criteri linkati via `task[].qa_criteri[]`
-  - Form per registrare risultato test: pass/fail per criterio
-  - Form per segnalare difetti con descrizione
-  - Aggiornamento manifest: `qa.criteri_accettazione[].validato_qa`, `qa.criteri_accettazione[].risultato_test`
-
-- [ ] **Step 2:** Commit
-
----
-
-### Task 6.6: Notifiche
+### Task 6.5: Notifiche
 
 **Files:**
 - Create: `portal/src/app/api/webhooks/github/route.ts`
@@ -569,8 +547,7 @@ npm install -D @types/node
   - Review completato → Funzionale
   - Risposte ricevute → TL/PM
   - Piano approvato → Dev assegnati
-  - Task completata → QA, TL/PM
-  - QA valida/rifiuta → Dev, TL/PM
+  - Task completata → TL/PM
   - BR aggiornato → TL/PM
 
 - [ ] **Step 4:** Email opzionale (configurabile per utente) — seconda iterazione, non bloccante
@@ -579,7 +556,7 @@ npm install -D @types/node
 
 ---
 
-### Task 6.7: Deploy su Vercel
+### Task 6.6: Deploy su Vercel
 
 **Files:**
 - Create: `portal/vercel.json` (se necessario)
@@ -626,11 +603,10 @@ Fase 6 (Portal Viste)
   Task 6.1 → 6.2
   Task 6.3
   Task 6.4
-  Task 6.5
-  Task 6.6 → 6.7
+  Task 6.5 → 6.6
   [dipende da: Fase 5]
-  [6.1-6.5 parallelizzabili]
-  [6.7 dopo tutto]
+  [6.1-6.4 parallelizzabili]
+  [6.6 dopo tutto]
 ```
 
 ---
@@ -650,9 +626,8 @@ Fase 6 (Portal Viste)
 1. **Auth**: login con utenti diversi, verificare che ogni ruolo veda solo le sue pagine
 2. **Funzionale flow**: creare BR, caricare docs, rispondere alle domande del review
 3. **TL/PM flow**: dashboard, approvazione piano, assegnazione task
-4. **QA flow**: visualizzare criteri, registrare risultati test
-5. **Notifiche**: verificare che gli eventi generino notifiche al destinatario corretto
-6. **Real-time**: push da CLI → webhook → aggiornamento portale
+4. **Notifiche**: verificare che gli eventi generino notifiche al destinatario corretto
+5. **Real-time**: push da CLI → webhook → aggiornamento portale
 
 ---
 

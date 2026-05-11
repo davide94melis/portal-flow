@@ -12,7 +12,7 @@ Pipeline completo per la gestione dei Business Requirements (BR) con modello POM
 ```
 S0 Onboard ──► S1 Review ──► S2 Clarify ──► S3 Analyze ──► S4 Approve
                                                                 │
-S8 Report ◄── S7 Update ◄── S6 Verify ◄── S5 Execute ◄────────┘
+S8 Report ◄── S7 Update ◄──────────────── S5 Execute ◄────────┘
 ```
 
 | Stage | ID | Chi | Dove | Descrizione |
@@ -20,10 +20,9 @@ S8 Report ◄── S7 Update ◄── S6 Verify ◄── S5 Execute ◄──
 | Onboard | S0 | Funzionale | Portale | Crea BR, carica docs/mockup, assegna team |
 | Review | S1 | TL/PM | Claude Code | Analisi docs + codice, genera domande |
 | Clarify | S2 | Funzionale | Portale | Risponde alle domande inline |
-| Analyze | S3 | TL/PM | Claude Code | Gap analysis + piano + QA test plan |
+| Analyze | S3 | TL/PM | Claude Code | Gap analysis + piano |
 | Approve | S4 | TL/PM | Portale | GATE: valida e approva il piano |
 | Execute | S5 | Dev | Claude Code | Esegue task con sottoagenti |
-| Verify | S6 | QA | Portale | Verifica criteri accettazione |
 | Update | S7 | TL/PM | Claude Code | Aggiorna piano se BR cambia |
 | Report | S8 | Tutti | Portale | Dashboard live, export |
 
@@ -78,8 +77,9 @@ Per ogni BR, proponi il next step basato su `stato_pipeline`:
 - `analyze` → "Approvare il piano (S4) — da fare sul portale"
 - `approve` → "Piano approvato, i Dev possono eseguire (S5)"
 - `execute` → "Monitorare progresso" (mostra % completamento)
-- `verify` → "QA in corso" (mostra criteri validati)
 - `update` → "BR aggiornato, rivalutare"
+
+Per ogni BR in stato `execute` o `approved`, il progresso mostrato e' il risultato della **Lettura progresso aggregata** (vedi sezione Utilities). Questo garantisce che il TL/PM veda il progresso reale di TUTTI gli sviluppatori, non solo quello locale.
 
 Chiedi: "Quale BR vuoi lavorare?" (o "Quale azione?")
 
@@ -141,7 +141,7 @@ Ogni azione significativa aggiunge un entry a `timeline[]`:
 {
   "data": "<ISO 8601 timestamp>",
   "attore": "<email o nome>",
-  "ruolo": "<funzionale|tech_lead|dev|qa|admin|sistema>",
+  "ruolo": "<funzionale|tech_lead|dev|admin|sistema>",
   "azione": "<descrizione azione>",
   "stage": "<stage corrente>"
 }
@@ -253,6 +253,63 @@ Genera da `manifest.piano.task`:
 <per ogni task ordinata per wave>
 ```
 
+**Regola**: dopo ogni commit del manifest, il pipeline DEVE generare/aggiornare le viste MD corrispondenti nella directory `brs/<nome>/`. Queste sono viste di sola lettura — il manifest resta la single source of truth. Lo step di generazione viste MD e' esplicito e obbligatorio in ogni stage che modifica il manifest:
+- S1 Review: genera `REVIEW_BR.md`
+- S3 Analyze: genera `GAP_REPORT_BR.md` e `PIANO_IMPLEMENTAZIONE_BR.md`
+- S5 Execute: aggiorna `PROGRESSO_BR.md` ad ogni cambio di stato task
+- S7 Update: rigenera tutte le viste MD dopo l'aggiornamento
+
+### Lettura progresso aggregata (cross-branch)
+
+Quando piu' sviluppatori lavorano su branch diversi, ognuno aggiorna il manifest sul proprio feature branch. Senza aggregazione, il progresso degli altri non e' visibile. Questa utility deve essere eseguita prima di mostrare il progresso o controllare le dipendenze.
+
+**Quando usare:**
+- S5 Execute: prima di controllare le dipendenze e di selezionare la prossima task
+- Dashboard TL/PM: prima di mostrare il progresso di un BR in stato `execute`/`approved`
+- Report: quando l'utente chiede lo stato di avanzamento
+
+**Procedura:**
+
+1. Sincronizzare i branch remoti:
+   ```bash
+   git fetch origin
+   ```
+
+2. Leggere il manifest corrente per estrarre:
+   - Gli ID di tutte le task (`piano.task[].id`)
+   - I nomi branch di ogni task (`piano.task[].branch`)
+   - Il nome del BR (`nome`)
+
+3. Trovare i branch remoti da controllare:
+   - Per ogni task con `branch` diverso da null: verificare che `origin/<branch>` esista:
+     ```bash
+     git branch -r | grep "<branch>"
+     ```
+   - Fallback: se il piano non ha colonna branch, cercare branch con:
+     ```bash
+     git branch -r | grep -i "feature/<nome-br>"
+     ```
+
+4. Per ogni branch trovato, leggere il manifest dal branch remoto:
+   ```bash
+   git show origin/<branch>:brs/<nome>/manifest.json
+   ```
+   Parsare il JSON e estrarre `piano.task[]` con progresso e stato per ogni task.
+
+5. Aggregare per task con la regola **"highest progress wins"**:
+   - Per ogni task, confrontare le versioni da tutti i branch (incluso il branch corrente)
+   - Se una versione mostra `stato == "completata"` (progresso 100%), vince sempre
+   - Altrimenti, prendere la versione con il progresso % piu' alto
+   - Se due versioni hanno lo stesso %, prendere quella con lo stato piu' avanzato (`in_corso` > `da_iniziare`)
+
+6. Ricalcolare le metriche di riepilogo dalla vista aggregata (task completate, in corso, progresso complessivo %).
+
+7. **Fallback**: se `git fetch` fallisce (no rete), usare il manifest locale e mostrare un warning:
+
+   > Impossibile sincronizzare con il remoto. Il progresso mostrato potrebbe non essere aggiornato.
+
+Usare la vista aggregata per tutte le operazioni successive (controllo dipendenze, selezione task, dashboard).
+
 ---
 
 ## Setup iniziale (.br-local.json)
@@ -312,9 +369,26 @@ Leggi tutti i documenti convertiti e analizzali seguendo questa struttura:
 - Gap: funzionalita' menzionate in un doc ma assenti negli altri
 - Mapping: mockup coprono tutte le funzionalita' del BR?
 
-**Check leggero vs codice** (se i path dei codebase sono disponibili dal manifest):
-- Per ogni `codebase[]` nel manifest, cerca i path in `.br-local.json` (se sei TL/PM e hai accesso) oppure fai un check di alto livello sulle naming convention evidenti nel manifest
-- Identifica disallineamenti di naming, struttura, modello dati tra documenti e codice
+**Check leggero contro il codice**
+
+Per ogni codebase nel manifest (`codebase[]`), leggere il path locale da `.br-local.json`. Se il TL/PM non ha `.br-local.json` configurato, chiedere i path dei codebase rilevanti.
+
+Verificare superficialmente:
+
+- **Entita' e modelli dati**: il BR presuppone strutture che nel codice esistono ma sono diverse? (nomi diversi, campi diversi, relazioni diverse)
+- **Enum e costanti**: il BR definisce stati o valori che nel codice esistono gia' come enum con valori/nomi diversi?
+- **API/endpoint**: il BR descrive operazioni che nel codice corrispondono ad API con naming o struttura diversa?
+- **Flussi e stati**: il BR descrive transizioni di stato che nel codice funzionano diversamente?
+
+Usare l'Agent tool con `subagent_type: "Explore"` per parallelizzare l'esplorazione dei diversi codebase, fornendo contesto dal BR su cosa cercare.
+
+Lo scopo NON e' fare la gap analysis (quello lo fa S3 Analyze) ma trovare problemi di *documentazione* visibili solo confrontando col codice. I disallineamenti trovati vanno scritti in `manifest.review.disallineamenti_codice[]` con:
+- `id`: formato `D-NNN`
+- `tipo`: naming | struttura | logica | modello_dati | api
+- `dove_doc`: riferimento al punto del documento
+- `dove_codice`: path al file/classe nel codebase
+- `descrizione`: cosa e' diverso
+- `impatto`: conseguenze se non risolto
 
 **3. Classificazione problemi**
 
@@ -329,25 +403,18 @@ Per ogni assunzione generata, crea anche un entry in `manifest.review.assunzioni
 
 Per ogni disallineamento codice trovato, crea un entry in `manifest.review.disallineamenti_codice[]`.
 
-**4. Generazione criteri QA iniziali**
-
-Dalla documentazione, estrai i criteri di accettazione principali e popola `manifest.qa.criteri_accettazione[]`:
-- Un criterio per ogni funzionalita' chiave descritta nel BR
-- `fonte` = "review"
-- `validato_qa` = false
-
-**5. Aggiornamento manifest**
+**4. Aggiornamento manifest**
 
 - `stato_pipeline` = "review"
 - `review.data` = data odierna
 - `review.esito` = "Con bloccanti" se ci sono problemi bloccanti, altrimenti "Senza bloccanti"
 - Aggiungi entry in `timeline[]`
 
-**6. Generazione vista MD**
+**5. Generazione vista MD**
 
 Genera `brs/<nome>/REVIEW_BR.md` dal manifest (vedi sezione Utilities).
 
-**7. Commit e output**
+**6. Commit e output**
 
 Commit: `[br-pipeline] <nome>: review completato (<n> bloccanti, <m> non bloccanti)`
 
@@ -361,7 +428,6 @@ Esito: <esito>
 - Problemi non bloccanti: <m>
 - Assunzioni proposte: <k>
 - Disallineamenti codice: <j>
-- Criteri QA generati: <q>
 
 Prossimo step: Il funzionale deve rispondere alle domande sul portale (S2).
 Quando le risposte arrivano, puoi lanciare l'analisi (S3).
@@ -428,28 +494,42 @@ Dal gap report, genera il piano di implementazione:
 - `wave`: ordine di esecuzione (0 = prime task, 1 = dipendono da wave 0, ecc.)
 - `dipendenze`: ID delle task prerequisito
 - `effort_gg`: stima in giorni
-- `qa_criteri`: linkare ai criteri QA rilevanti
-
 Aggiungi task di merge (`T-MERGE-xxx`) dove necessario per integrare branch paralleli.
 
-**5. QA test plan**
+**Principi per la creazione delle task:**
 
-Arricchisci `manifest.qa.criteri_accettazione[]` con dettagli tecnici:
-- Aggiungi criteri derivanti dall'analisi del codice (edge case, integrazioni)
-- Ogni criterio deve avere `fonte` = "analisi"
+1. **Organizzazione in stream** — Raggruppa le task in stream funzionali coesi (es. `stream-booking`, `stream-monitoraggio`, `stream-fondazioni`). Le task nello stesso stream condividono il contesto di codice e possono dipendere direttamente tra loro. Per le dipendenze cross-stream, inserisci sempre una merge task esplicita.
 
-**6. Aggiornamento manifest**
+2. **Merge task per dipendenze cross-stream** — Quando una task in stream-X dipende da una task in stream-Y, inserisci automaticamente una merge task `T-MERGE-NNN` (dove NNN e' l'ID numerico della task sorgente). La merge task:
+   - Appartiene allo stream sorgente
+   - Ha owner suggerito: lo sviluppatore che ha completato la task sorgente
+   - Ha effort ~0.5gg
+   - La descrizione specifica: quale branch mergiare, in quale branch base, e di verificare la build dopo il merge
+   - Si colloca tra le wave come punto di sincronizzazione
+   - All'interno dello stesso stream non serve alcuna merge task — la dipendenza diretta e' sufficiente
+
+3. **Branch convention** — Ogni task ha un branch `feature/<br-name>-<slug-attivita>` (es. `feature/monitoring-enum-entities-core`). Per task multi-repo (Area = BE+FE), lo stesso nome branch viene usato in tutte le repo. Per le merge task (T-MERGE-*), il campo branch e' null.
+
+4. **Indipendenza massima** — Ogni task deve poter essere sviluppata in parallelo. Se due task condividono una dipendenza (es. una nuova entita' DB), la task che crea la dipendenza va nella wave precedente. Minimizza le dipendenze cross-stream: le fondazioni condivise vanno in `stream-fondazioni` completato e mergiato prima che gli altri stream inizino.
+
+5. **Assegnazione per competenza e seniority** — Task complesse o architetturali ai senior/mid. Task ripetitive o con scope chiuso ai junior, con reviewer assegnato. I senior non vanno caricati di implementazione continua: il loro valore e' nel design, review, e sblocco tecnico.
+
+6. **Granularita' giusta** — Ogni task deve essere completabile in 1-5 giorni. Troppo grande: spezzala. Troppo piccola (< 2 ore): accorpala con task correlate.
+
+7. **Autosufficiente per Claude Code** — Ogni task deve contenere abbastanza contesto perche' un agente Claude Code possa implementarla leggendo solo la task e il gap report. Includi: file esatti da modificare/creare, pattern del progetto da seguire, criteri di completamento verificabili, e note specifiche (convenzioni, attenzioni, edge case).
+
+**5. Aggiornamento manifest**
 
 - `stato_pipeline` = "analyze"
 - Aggiungi entry in `timeline[]`
 
-**7. Generazione viste MD**
+**6. Generazione viste MD**
 
 Genera:
 - `brs/<nome>/GAP_REPORT_BR.md`
 - `brs/<nome>/PIANO_IMPLEMENTAZIONE_BR.md`
 
-**8. Commit e output**
+**7. Commit e output**
 
 Commit: `[br-pipeline] <nome>: analisi completata (<n> gap, <m> task)`
 
@@ -494,8 +574,10 @@ Mostra la lista (vedi formato in Entry Point → Dev).
 
 **3. Selezione task**
 
+Prima di controllare le dipendenze, eseguire la **Lettura progresso aggregata** (vedi sezione Utilities). Usare la vista aggregata per determinare lo stato delle dipendenze, NON il manifest locale.
+
 Proponi la prossima task disponibile = la prima task dove:
-- Tutte le task in `dipendenze[]` hanno `stato == "completata"` nel manifest
+- Tutte le task in `dipendenze[]` hanno `stato == "completata"` nella vista aggregata
 - `stato` != "bloccata"
 
 Se nessuna task e' disponibile (tutte bloccate da dipendenze):
@@ -520,8 +602,46 @@ Per ogni sotto-step, lancia un sottoagente con l'Agent tool:
 - Fornisci contesto completo: task description, file coinvolti (dal gap report), pattern del codebase, vincoli
 - Il sotto-step deve poter essere eseguito senza bisogno di leggere il manifest
 - Il sottoagente lavora nel path del codebase rilevante (da `.br-local.json`)
+- Il sottoagente DEVE scrivere test per il suo lavoro, compresi edge case (input vuoti, null, boundary values, casi di errore). Specificalo esplicitamente nel prompt. Il sottoagente non puo' dichiarare il lavoro completo senza test.
 
 Dopo ogni sotto-step completato, aggiorna `task[].progresso` nel manifest.
+
+**Verifica del lavoro dei sottoagenti**
+
+Dopo che ogni sottoagente completa il suo lavoro, esegui una verifica in 3 fasi prima di aggiornare il progresso:
+
+**Fase A — Verifica tecnica**
+
+1. Esegui i test — la suite completa deve passare con zero failure
+2. Verifica la build — il progetto deve compilare senza errori
+3. Controlla che il sottoagente abbia scritto test che coprano:
+   - Il caso felice (happy path)
+   - I casi limite (edge case): input vuoti, null, valori al boundary, liste vuote, stringhe troppo lunghe
+   - I casi di errore: dipendenze che falliscono, input malformato, stati invalidi
+   - Se i test edge case mancano, lancia un nuovo sottoagente per aggiungerli. Non procedere senza.
+
+**Fase B — Verifica di coerenza col requisito**
+
+Rileggi la descrizione della task dal manifest (`piano.task[].descrizione`) e dal gap report. Per OGNI requisito:
+
+1. E' stato implementato? Il codice copre effettivamente quel requisito?
+2. E' stato implementato correttamente? Il comportamento corrisponde?
+3. Manca qualcosa che il sottoagente ha ignorato?
+
+Se trovi discrepanze, lancia un sottoagente di correzione e ripeti la Fase B.
+
+**Fase C — Riesame finale (second look)**
+
+Dopo le Fasi A e B:
+
+1. Rileggere il codice prodotto dall'inizio alla fine — non fidarsi del riepilogo del sottoagente
+2. Cercare assunzioni nascoste — valori hardcodati che dovrebbero essere configurabili?
+3. Verificare che i test testino realmente — ogni test deve avere asserzioni specifiche e significative
+4. Controllare che i nomi seguano le convenzioni del progetto
+
+Se trovi problemi, correggi e ripeti la Fase C.
+
+Solo quando tutte e 3 le fasi sono superate il sotto-step e' verificato e il progresso puo' essere aggiornato.
 
 **6. Gestione merge task (T-MERGE-*)**
 
@@ -533,10 +653,50 @@ Le task di merge NON usano sottoagenti. Il pipeline guida il Dev nel merge:
 
 **7. Completamento task**
 
-Quando tutti i sotto-step sono completati:
+Una task e' completata solo quando TUTTI questi criteri sono soddisfatti:
+
+1. **Requisiti** — tutto cio' che il gap report e il piano richiedono e' implementato
+2. **Codice completo** — nessun placeholder, nessun TODO, nessuna implementazione parziale
+3. **Test completi e verdi** — con copertura di happy path, edge case (input vuoti, null, boundary), e casi di errore
+4. **Build** — il progetto compila senza errori
+5. **Coerenza verificata** — la Fase B e' stata superata per ogni requisito
+6. **Riesame superato** — la Fase C non ha trovato problemi
+
+**Ciclo di verifica finale:**
+
+Prima di dichiarare la task completata, esegui questo ciclo:
+
+1. Elenca ogni requisito dalla descrizione della task nel manifest
+2. Per ognuno, indica il file e la riga che lo implementa
+3. Per ognuno, indica il test che lo verifica
+4. Se un requisito non ha implementazione O non ha test → la task NON e' completa
+
+Mostra la tabella di verifica:
+
+```
+| # | Requisito | Implementato | File | Test | Verificato |
+|---|---|---|---|---|---|
+| 1 | [requisito] | Si | path/file:42 | TestMethod | Si |
+| 2 | [requisito] | No | — | — | — |
+```
+
+Se un requisito risulta non coperto, lancia un sottoagente per completarlo, poi ripeti il ciclo.
+
+Quando TUTTI i requisiti sono coperti, implementati e testati:
+
 - `task[].stato` = "completata"
 - `task[].progresso` = 100
 - Aggiungi entry in `timeline[]`
+
+Comunica al Dev:
+
+> La task **T-XXX — [nome]** e' completa e verificata.
+>
+> - Requisiti coperti: N/N
+> - Test: X totali (Y happy path, Z edge case, W error case) — tutti verdi
+> - Build: compila
+> - Coerenza: verificata
+> - Riesame: superato
 
 **IMPORTANTE: Mai committare automaticamente nel codebase del progetto.** Suggerisci al Dev cosa committare e con quale messaggio, ma lascia che sia lui a farlo. Committare autonomamente solo nel repo portal-flow (manifest).
 
@@ -547,7 +707,7 @@ Aggiorna `brs/<nome>/PROGRESSO_BR.md`.
 **9. Prossima task**
 
 Dopo il completamento, proponi la prossima task disponibile. Se non ce ne sono:
-"Tutte le tue task sono completate! Il QA validera' i criteri di accettazione (S6)."
+"Tutte le tue task sono completate!"
 
 ---
 
