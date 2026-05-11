@@ -13,6 +13,8 @@ Pipeline completo per la gestione dei Business Requirements (BR) con modello POM
 S0 Onboard ──► S1 Review ──► S2 Clarify ──► S3 Analyze ──► S4 Approve
                                                                 │
 S8 Report ◄── S7 Update ◄──────────────── S5 Execute ◄────────┘
+                                               ↕
+                                          S6 Debug (parallelo)
 ```
 
 | Stage | ID | Chi | Dove | Descrizione |
@@ -25,6 +27,7 @@ S8 Report ◄── S7 Update ◄───────────────�
 | Execute | S5 | Dev | Claude Code | Esegue task con sottoagenti |
 | Update | S7 | TL/PM | Claude Code | Aggiorna piano se BR cambia |
 | Report | S8 | Tutti | Portale | Dashboard live, export |
+| Debug | S6 | Dev | Claude Code | Fix bug segnalati dal funzionale |
 
 ---
 
@@ -77,6 +80,13 @@ Per ogni BR, proponi il next step basato su `stato_pipeline`:
 - `analyze` → "Approvare il piano (S4) — da fare sul portale"
 - `approve` → "Piano approvato, i Dev possono eseguire (S5)"
 - `execute` → "Monitorare progresso" (mostra % completamento)
+
+Per ogni BR in stato `execute` o `approved` con bug attivi (esiste `BUG_REPORT_BR.md` in `brs/<nome>/` o `manifest.bugs.debug_attivo == true`), mostra anche:
+
+> Bug: A aperti, B in corso, C verificati, D chiusi — **E totali**
+
+E aggiungi alle azioni: "Gestisci i bug" → delego a `br-debug`
+
 - `update` → "BR aggiornato, rivalutare"
 
 Per ogni BR in stato `execute` o `approved`, il progresso mostrato e' il risultato della **Lettura progresso aggregata** (vedi sezione Utilities). Questo garantisce che il TL/PM veda il progresso reale di TUTTI gli sviluppatori, non solo quello locale.
@@ -95,6 +105,18 @@ Mostra:
 | booking-v2 | T-001 | Creare entita Booking | 0 | P0 | da_iniziare | 0% | - |
 | booking-v2 | T-003 | API endpoint booking | 1 | P0 | da_iniziare | 0% | T-001 |
 ```
+
+Filtra anche i bug da `manifest.bugs.lista[]` dove `owner == <nome_dev>` e `stato != "chiuso"`.
+
+Mostra dopo le task:
+
+> ## I tuoi bug
+>
+> | BR | ID | Sev. | Titolo | Stato | Progresso |
+> |---|---|---|---|---|---|
+> | booking-v2 | BUG-003 | critico | Login email maiuscola | assegnato | 0% |
+
+Se l'utente sceglie un bug, invoca `br-debug` tramite il tool `Skill`.
 
 Proponi la prossima task disponibile (non bloccata, priorita' piu' alta, wave piu' bassa):
 "La prossima task disponibile e' **T-001 — Creare entita Booking** (booking-v2, P0, wave 0). Vuoi iniziare?"
@@ -253,6 +275,36 @@ Genera da `manifest.piano.task`:
 <per ogni task ordinata per wave>
 ```
 
+#### BUG_REPORT_BR.md
+
+Genera da `manifest.bugs`:
+
+```markdown
+# Bug Report — <nome>
+
+Data import: <bugs.data_ultimo_import>
+Sorgente: <bugs.sorgente>
+
+## Riepilogo
+
+| Metrica | Valore |
+|---|---|
+| Bug totali | <bugs.riepilogo.totali> |
+| Aperti | <bugs.riepilogo.aperti> |
+| In corso | <bugs.riepilogo.in_corso> |
+| Verificati | <bugs.riepilogo.verificati> |
+| Chiusi | <bugs.riepilogo.chiusi> |
+| Bloccati | <bugs.riepilogo.bloccati> |
+
+## Lista Bug
+
+| ID | Tipo | Sev. | Fase | Sezione | Titolo | Owner | Stato | Task | Branch |
+|---|---|---|---|---|---|---|---|---|---|
+<per ogni bug in lista>
+```
+
+**Quando generare:** dopo ogni modifica a `manifest.bugs` — import, cambio stato, re-import, chiusura.
+
 **Regola**: dopo ogni commit del manifest, il pipeline DEVE generare/aggiornare le viste MD corrispondenti nella directory `brs/<nome>/`. Queste sono viste di sola lettura — il manifest resta la single source of truth. Lo step di generazione viste MD e' esplicito e obbligatorio in ogni stage che modifica il manifest:
 - S1 Review: genera `REVIEW_BR.md`
 - S3 Analyze: genera `GAP_REPORT_BR.md` e `PIANO_IMPLEMENTAZIONE_BR.md`
@@ -307,6 +359,8 @@ Quando piu' sviluppatori lavorano su branch diversi, ognuno aggiorna il manifest
 7. **Fallback**: se `git fetch` fallisce (no rete), usare il manifest locale e mostrare un warning:
 
    > Impossibile sincronizzare con il remoto. Il progresso mostrato potrebbe non essere aggiornato.
+
+**Aggregazione bug:** oltre alle task, aggrega anche `manifest.bugs.lista[]` dai branch remoti con la stessa regola "highest progress wins". Ricalcola `manifest.bugs.riepilogo` dalla vista aggregata.
 
 Usare la vista aggregata per tutte le operazioni successive (controllo dipendenze, selezione task, dashboard).
 
