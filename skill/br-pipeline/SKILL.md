@@ -60,9 +60,32 @@ Se non ci sono BR:
   - Se **Dev**: avvia il setup iniziale (vedi sezione Setup)
   - Se **TL/PM**: procedi con la vista TL/PM
 
-### 4. Vista per ruolo
+### 4. Caricamento Profilo (se disponibile)
+
+Dopo l'identificazione del ruolo, tenta di caricare il profilo progetto:
+
+1. Leggi `.br-local.json` dalla root del repo corrente
+2. Se contiene `profilo` e `profiles_repo`, sincronizza e carica il `profile.json`
+3. Usa il profilo per arricchire la dashboard e la configurazione del setup Dev
+
+**Aggiornamento Setup Dev:**
+
+Se l'utente e' un Dev e `.br-local.json` non ha `profilo` o `profiles_repo`, ma il TL/PM ha gia' creato un profilo, chiedi:
+
+> Il profilo progetto **<nome>** e' disponibile. Vuoi configurare il collegamento?
+> Dammi il path locale del clone di `deloitte-profiles`.
+
+Se confermato, aggiungi `profilo` e `profiles_repo` al `.br-local.json`.
+
+### 5. Vista per ruolo
 
 **TL/PM — Dashboard BR:**
+
+**Se il profilo e' disponibile**, mostra nell'header della dashboard:
+
+> **Progetto: <project.name>** (<project.client>)
+> Stack: <tech_stack.backend.framework> + <tech_stack.frontend.framework>
+> Profilo: `<profilo>` (ultimo sync: <data pull>)
 
 Mostra tabella con tutti i BR attivi:
 
@@ -94,6 +117,11 @@ Per ogni BR in stato `execute` o `approved`, il progresso mostrato e' il risulta
 Chiedi: "Quale BR vuoi lavorare?" (o "Quale azione?")
 
 **Dev — Le mie task:**
+
+**Se il profilo e' disponibile**, mostra nell'header:
+
+> **Progetto: <project.name>**
+> Stack BE: <tech_stack.backend.framework> | Stack FE: <tech_stack.frontend.framework>
 
 Filtra le task da tutti i BR dove `piano.approvato == true` e `task[].owner == <nome_dev>` e `task[].stato != "completata"` e `task[].stato != "annullata"`.
 
