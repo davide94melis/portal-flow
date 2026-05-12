@@ -28,6 +28,7 @@ S8 Report ◄── S7 Update ◄───────────────�
 | Update | S7 | TL/PM | Claude Code | Aggiorna piano se BR cambia |
 | Report | S8 | Tutti | Portale | Dashboard live, export |
 | Debug | S6 | Dev | Claude Code | Fix bug segnalati dal funzionale |
+| Estimate | S9 | TL/PM | Claude Code | Stima team e simulazioni what-if |
 
 ---
 
@@ -99,10 +100,13 @@ Mostra tabella con tutti i BR attivi:
 Per ogni BR, proponi il next step basato su `stato_pipeline`:
 - `onboard` → "Lanciare review (S1)"
 - `review` → "Attendere risposte funzionale" (ma se ci sono risposte, suggerisci S3)
+  - "Stima team (rough)" → `br-estimator` (opzionale, non bloccante)
 - `clarify` → "Lanciare analisi (S3)" (se ci sono risposte nuove)
+  - "Stima team (rough)" → `br-estimator` (opzionale, non bloccante)
 - `analyze` → "Approvare il piano (S4) — da fare sul portale"
 - `approve` → "Piano approvato, i Dev possono eseguire (S5)"
 - `execute` → "Monitorare progresso" (mostra % completamento)
+  - "Stima team (dettagliata)" → `br-estimator` (opzionale, non bloccante)
 
 Per ogni BR in stato `execute` o `approved` con bug attivi (esiste `BUG_REPORT_BR.md` in `brs/<nome>/` o `manifest.bugs.debug_attivo == true`), mostra anche:
 
